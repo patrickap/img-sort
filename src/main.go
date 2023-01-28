@@ -37,14 +37,14 @@ func main() {
 
 		fileTime, err := extractExifDateTime(path)
 		if err != nil {
-			newPath := filepath.Join(*target, "unknown")
+			newPath := filepath.Join(*target, "unknown", filepath.Base(path))
 			return moveFile(path, newPath)
 		}
 
 		year := fmt.Sprintf("%d", fileTime.Year())
 		month := fmt.Sprintf("%d-%02d", fileTime.Year(), fileTime.Month())
-		timestamp := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileTime.Year(), fileTime.Month(), fileTime.Day(), fileTime.Hour(), fileTime.Minute(), fileTime.Second(), filepath.Ext(path))
-		newPath := filepath.Join(*target, year, month, timestamp)
+		fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileTime.Year(), fileTime.Month(), fileTime.Day(), fileTime.Hour(), fileTime.Minute(), fileTime.Second(), filepath.Ext(path))
+		newPath := filepath.Join(*target, year, month, fileName)
 
 		return moveFile(path, newPath)
 
@@ -89,62 +89,34 @@ func extractExifDateTime(path string) (time.Time, error) {
 	return tm, nil
 }
 
-func createDir(path string) error {
-	if isFile(path) {
-		// If the path is a file path, use the parent directory
-		path = filepath.Dir(path)
-	}
-
-	// Create the directory, including all its parent directories if missing
-	return os.MkdirAll(path, os.ModePerm)
-}
-
-func moveFile(src, dst string) error {
-	if isDir(src) {
-		return fmt.Errorf("Cannot move file. Source '%s' is a directory.", src)
-	}
-
-	if isDir(dst) {
-		// Destination is a directory, append the file name
-		dst = filepath.Join(dst, filepath.Base(src))
-	}
-
-	err := createDir(dst)
+func moveFile(sourceFile, targetFile string) error {
+	err := os.MkdirAll(filepath.Dir(targetFile), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
 	// Check if target file already exists
-	if _, err := os.Stat(dst); err == nil {
+	if _, err := os.Stat(targetFile); err == nil {
 		// Target file already exists, append a postfix
-		ext := filepath.Ext(dst)
-		base := dst[:len(dst)-len(ext)]
+		ext := filepath.Ext(targetFile)
+		base := targetFile[:len(targetFile)-len(ext)]
 		for i := 1; ; i++ {
-			newDst := fmt.Sprintf("%s-%d%s", base, i, ext)
-			if _, err := os.Stat(newDst); os.IsNotExist(err) {
-				dst = newDst
+			newTargetFile := fmt.Sprintf("%s-%d%s", base, i, ext)
+			if _, err := os.Stat(newTargetFile); os.IsNotExist(err) {
+				targetFile = newTargetFile
 				break
 			}
 		}
 	}
 
-	return os.Rename(src, dst)
+	return os.Rename(sourceFile, targetFile)
 }
 
-func isFile(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
+// func isFile(path string) bool {
+// 	info, err := os.Stat(path)
+// 	if err != nil {
+// 		return false
+// 	}
 
-	return !info.IsDir()
-}
-
-func isDir(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-
-	return info.IsDir()
-}
+// 	return !info.IsDir()
+// }
