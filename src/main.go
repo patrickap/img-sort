@@ -31,7 +31,7 @@ func main() {
 			return nil
 		}
 
-		if !isValidFileType(path) {
+		if !isValidExtension(path) {
 			return nil
 		}
 
@@ -41,10 +41,10 @@ func main() {
 			return moveFile(path, newPath)
 		}
 
-		year := fmt.Sprintf("%d", fileTime.Year())
-		month := fmt.Sprintf("%d-%02d", fileTime.Year(), fileTime.Month())
+		yearDir := fmt.Sprintf("%d", fileTime.Year())
+		monthDir := fmt.Sprintf("%d-%02d", fileTime.Year(), fileTime.Month())
 		fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileTime.Year(), fileTime.Month(), fileTime.Day(), fileTime.Hour(), fileTime.Minute(), fileTime.Second(), filepath.Ext(path))
-		newPath := filepath.Join(*target, year, month, fileName)
+		newPath := filepath.Join(*target, yearDir, monthDir, fileName)
 
 		return moveFile(path, newPath)
 
@@ -56,12 +56,11 @@ func main() {
 	}
 }
 
-func isValidFileType(path string) bool {
-	ext := filepath.Ext(path)
-	validTypes := []string{".tiff", ".tif", ".gif", ".jpeg", ".jpg", ".png", ".img", ".bmp", ".raw", ".heif", ".heic", ".mkv", ".avi", ".mov", ".wmv", ".mp4", ".m4v", ".mpg", ".mpeg", ".hevc"}
+func isValidExtension(path string) bool {
+	enxtensions := []string{".tiff", ".tif", ".gif", ".jpeg", ".jpg", ".png", ".img", ".bmp", ".raw", ".heif", ".heic", ".mkv", ".avi", ".mov", ".wmv", ".mp4", ".m4v", ".mpg", ".mpeg", ".hevc"}
 
-	for _, t := range validTypes {
-		if ext == t {
+	for _, e := range enxtensions {
+		if filepath.Ext(path) == e {
 			return true
 		}
 	}
@@ -70,13 +69,13 @@ func isValidFileType(path string) bool {
 }
 
 func extractExifDateTime(path string) (time.Time, error) {
-	f, err := os.Open(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return time.Time{}, err
 	}
-	defer f.Close()
+	defer file.Close()
 
-	x, err := exif.Decode(f)
+	x, err := exif.Decode(file)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -111,12 +110,3 @@ func moveFile(sourceFile, targetFile string) error {
 
 	return os.Rename(sourceFile, targetFile)
 }
-
-// func isFile(path string) bool {
-// 	info, err := os.Stat(path)
-// 	if err != nil {
-// 		return false
-// 	}
-
-// 	return !info.IsDir()
-// }
