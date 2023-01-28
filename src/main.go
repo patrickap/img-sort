@@ -11,14 +11,14 @@ import (
 )
 
 func main() {
-	source := flag.String("source", "", "the source path")
-	target := flag.String("target", "", "the target path")
+	source := flag.String("source", "", "source path")
+	target := flag.String("target", "", "target path")
 
 	flag.Parse()
 
 	if *source == "" || *target == "" {
 		fmt.Println("Error: --source and --target are required flags.")
-		fmt.Println("Usage: go run main.go --source /path/to/source --target /path/to/target")
+		fmt.Println("Usage: img-sort --source /path/to/source --target /path/to/target")
 		os.Exit(1)
 	}
 
