@@ -58,7 +58,7 @@ func main() {
 
 func isValidFileType(path string) bool {
 	ext := filepath.Ext(path)
-	validTypes := []string{".jpg", ".png", ".mov", ".mp4"}
+	validTypes := []string{".tiff", ".tif", ".gif", ".jpeg", ".jpg", ".png", ".img", ".bmp", ".raw", ".heif", ".heic", ".mkv", ".avi", ".mov", ".wmv", ".mp4", ".m4v", ".mpg", ".mpeg", ".hevc"}
 
 	for _, t := range validTypes {
 		if ext == t {
