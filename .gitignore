@@ -29,3 +29,6 @@ obj/
 
 # Go workspace file
 go.work
+
+# Misc
+.DS_Store
