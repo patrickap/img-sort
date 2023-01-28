@@ -1,0 +1,31 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Object files
+*.o
+*.a
+*.toc
+
+# Directory for big third-party dependencies
+vendor/
+
+# Build artifacts
+bin/
+obj/
+
+# Go dependencies
+/Godeps/
+/vendor/
+
+# Go workspace file
+go.work
