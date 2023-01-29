@@ -74,7 +74,7 @@ func isExtensionValid(path string) bool {
 	extensions := []string{".tiff", ".tif", ".gif", ".jpeg", ".jpg", ".png", ".img", ".bmp", ".raw", ".heif", ".heic", ".mkv", ".avi", ".mov", ".wmv", ".mp4", ".m4v", ".mpg", ".mpeg", ".hevc"}
 
 	for _, ext := range extensions {
-		if filepath.Ext(path) == ext {
+		if strings.ToLower(filepath.Ext(path)) == ext {
 			return true
 		}
 	}
@@ -131,6 +131,9 @@ func moveFile(path, newPath string) error {
 			}
 		}
 	}
+
+	// Transform file base and extension to lowercase
+	newPath = filepath.Join(filepath.Dir(newPath), strings.ToLower(filepath.Base(newPath)))
 
 	fmt.Printf("Move: %s -> %s\n", filepath.Base(path), newPath)
 	return os.Rename(path, newPath)
