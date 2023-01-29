@@ -4,8 +4,8 @@ Introducing img-sort, a little golang tool that helps you keep your photos and v
 
 ## Features
 
-- Simple and easy to use with --source and --target flags
-- Supports various file formats including TIFF, JPEG, PNG, MP4, AVI and more
+- Simple and easy to use with `--source` and `--target` flags
+- Supports various file formats including `TIFF`, `JPEG`, `PNG`, `MP4`, `AVI` and more
 - Photos and videos without date/time information are moved to a directory `unknown`
 - Duplicates are handled by appending a postfix `-1`, `-2`, `-3` and so on
 
