@@ -11,11 +11,19 @@ import (
 	"github.com/rwcarlsen/goexif/exif"
 )
 
+var v = "v0.0.1"
+
 func main() {
+	version := flag.Bool("version", false, "version info")
 	source := flag.String("source", "", "source path")
 	target := flag.String("target", "", "target path")
 
 	flag.Parse()
+
+	if *version != false {
+		fmt.Printf("Version: %s\n", v)
+		os.Exit(0)
+	}
 
 	if *source == "" || *target == "" {
 		fmt.Println("Error: --source and --target are required flags.")
