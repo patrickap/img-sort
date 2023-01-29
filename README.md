@@ -51,6 +51,7 @@ img-sort --source /path/to/source --target /path/to/target
 - `--version`: Version info
 - `--source`: Source path
 - `--target`: Target path
+- `--modtime`: Modification time fallback
 
 ## Building from sources
 

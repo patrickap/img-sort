@@ -23,6 +23,7 @@ func main() {
 	source := flag.String("source", "", "source path")
 	target := flag.String("target", "", "target path")
 	// TODO: flag: use modification time as fallback true/false
+	// modtime := flag.Bool("modtime", false, "modification time fallback")
 
 	flag.Parse()
 
