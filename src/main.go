@@ -8,6 +8,11 @@ import (
 	"strings"
 	"time"
 
+	// TODO: find method to bundle this program with exiftool directly
+	// there's a function to set another location instead of $PATH: SetExiftoolBinaryPath
+	"github.com/barasher/go-exiftool"
+
+	// TODO: remove github.com/rwcarlsen/goexif/exif
 	"github.com/rwcarlsen/goexif/exif"
 )
 
@@ -17,6 +22,7 @@ func main() {
 	version := flag.Bool("version", false, "version info")
 	source := flag.String("source", "", "source path")
 	target := flag.String("target", "", "target path")
+	// TODO: flag: use modification time as fallback true/false
 
 	flag.Parse()
 
@@ -91,12 +97,53 @@ func isFileExisting(path string) bool {
 	return !info.IsDir()
 }
 
+// TODO: refactor function to parse file exif dates and use them for sorting
+func logExifDate(path string) any {
+	// Initialize exif tool
+	et, err := exiftool.NewExiftool()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer et.Close()
+
+	fileExif := et.ExtractMetadata(path)[0]
+	if err != nil {
+		return err
+	}
+
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	exifDateTimeOriginal := fileExif.Fields["DateTimeOriginal"]
+	exifCreateDate := fileExif.Fields["CreateDate"]
+
+	// TODO: this two are used as fallbacks only if flag is set
+	exifModifyDate := fileExif.Fields["ModifyDate"]
+	fileModifyDate := fileInfo.ModTime()
+
+	fmt.Println("- - - - - - - - - - - -")
+	fmt.Println(path)
+	fmt.Println("- - - - - - - - - - - -")
+	fmt.Println("exifDateTimeOriginal", exifDateTimeOriginal)
+	fmt.Println("exifCreateDate", exifCreateDate)
+	fmt.Println("exifModifyDate", exifModifyDate)
+	fmt.Println("fileModifyDate", fileModifyDate)
+
+	return nil
+}
+
 func decodeExif(path string) (*exif.Exif, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
+
+	// TODO: remove, is for test log only
+	logExifDate(path)
 
 	return exif.Decode(file)
 }
