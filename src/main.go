@@ -35,7 +35,7 @@ func main() {
 		}
 
 		// Allow valid file extensions only
-		if !isValidExt(path) {
+		if !isExtensionValid(path) {
 			return nil
 		}
 
@@ -43,6 +43,7 @@ func main() {
 		// If no exif data is available move file to 'unknown' directory
 		if err != nil {
 			newPath := filepath.Join(*target, "unknown", filepath.Base(path))
+
 			return moveFile(path, newPath)
 		}
 
@@ -53,7 +54,6 @@ func main() {
 		newPath := filepath.Join(*target, yearDir, monthDir, fileName)
 
 		return moveFile(path, newPath)
-
 	})
 
 	if err != nil {
@@ -62,16 +62,25 @@ func main() {
 	}
 }
 
-func isValidExt(path string) bool {
-	validExts := []string{".tiff", ".tif", ".gif", ".jpeg", ".jpg", ".png", ".img", ".bmp", ".raw", ".heif", ".heic", ".mkv", ".avi", ".mov", ".wmv", ".mp4", ".m4v", ".mpg", ".mpeg", ".hevc"}
+func isExtensionValid(path string) bool {
+	extensions := []string{".tiff", ".tif", ".gif", ".jpeg", ".jpg", ".png", ".img", ".bmp", ".raw", ".heif", ".heic", ".mkv", ".avi", ".mov", ".wmv", ".mp4", ".m4v", ".mpg", ".mpeg", ".hevc"}
 
-	for _, ext := range validExts {
+	for _, ext := range extensions {
 		if filepath.Ext(path) == ext {
 			return true
 		}
 	}
 
 	return false
+}
+
+func isFileExisting(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	return !info.IsDir()
 }
 
 func decodeExif(path string) (*exif.Exif, error) {
@@ -90,34 +99,31 @@ func decodeExifTime(path string) (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	exifTime, err := exifData.DateTime()
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return exifTime, nil
+	return exifData.DateTime()
 }
 
-func moveFile(sourceFile, targetFile string) error {
-	err := os.MkdirAll(filepath.Dir(targetFile), os.ModePerm)
+func moveFile(path, newPath string) error {
+	err := os.MkdirAll(filepath.Dir(newPath), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
 	// If target file already exists, append a postfix
-	if _, err := os.Stat(targetFile); err == nil {
-		fileExt := filepath.Ext(targetFile)
-		fileBase := filepath.Base(targetFile)
+	if isFileExisting(newPath) {
+		fileExt := filepath.Ext(newPath)
+		fileBase := filepath.Base(newPath)
 		fileName := strings.TrimSuffix(fileBase, fileExt)
 
 		for i := 1; ; i++ {
-			newTargetFile := fmt.Sprintf("%s-%d%s", fileName, i, fileExt)
-			if _, err := os.Stat(newTargetFile); os.IsNotExist(err) {
-				targetFile = newTargetFile
+			fileBaseIdx := fmt.Sprintf("%s-%d%s", fileName, i, fileExt)
+			newPathIdx := filepath.Join(filepath.Dir(newPath), fileBaseIdx)
+			if !isFileExisting(newPathIdx) {
+				newPath = newPathIdx
 				break
 			}
 		}
 	}
 
-	return os.Rename(sourceFile, targetFile)
+	fmt.Printf("Move: %s -> %s\n", filepath.Base(path), newPath)
+	return os.Rename(path, newPath)
 }
