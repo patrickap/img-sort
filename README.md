@@ -1,17 +1,18 @@
 # img-sort
 
-Introducing img-sort, a little golang tool that helps you keep your photos and videos organized. This tool will sort all your media in year and month folders, making it easy for you to find the photos and videos you need.
+Introducing `img-sort`, a little golang tool that helps you keep your photos and videos organized. This tool will sort all your media in year and month folders, making it easy for you to find the photos and videos you need.
 
 ## Features
 
-- Simple and easy to use with `--source` and `--target` flags
+- Simple and easy to use with flags
 - Supports various file formats including `TIFF`, `JPEG`, `PNG`, `MP4`, `AVI` and more
+- Reads the exif data if available otherwise uses the modification time
 - Photos and videos without date/time information are moved to a directory `unknown`
 - Duplicates are handled by appending a postfix `-1`, `-2`, `-3` and so on
 
 ## Folder Structure
 
-The folder structure created by img-sort will look like the following example:
+The folder structure created by `img-sort` will look like the following example:
 
 ```yaml
 ├── 2021
@@ -44,6 +45,12 @@ Simply run `img-sort` and set `--source` and `--target`. The tool will take care
 ```bash
 img-sort --source /path/to/source --target /path/to/target
 ```
+
+## Available flags
+
+- `--version`: Version info
+- `--source`: Source path
+- `--target`: Target path
 
 ## Building from sources
 

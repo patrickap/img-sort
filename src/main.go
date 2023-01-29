@@ -104,7 +104,12 @@ func decodeExif(path string) (*exif.Exif, error) {
 func decodeExifTime(path string) (time.Time, error) {
 	exifData, err := decodeExif(path)
 	if err != nil {
-		return time.Time{}, err
+		info, err := os.Stat(path)
+		if err != nil {
+			return time.Time{}, err
+		}
+
+		return info.ModTime(), err
 	}
 
 	return exifData.DateTime()
