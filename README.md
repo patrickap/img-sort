@@ -5,7 +5,7 @@ Introducing `img-sort`, a little golang tool that helps you keep your photos and
 ## Features
 
 - Simple and easy to use with flags
-- Supports various file formats including `TIFF`, `JPEG`, `PNG`, `MP4`, `AVI` and more
+- Supports various file formats including `JPEG`, `HEIC`, `MP4`, `MOV` and more
 - Reads the exif data if available otherwise uses the modification time
 - Photos and videos without date/time information are moved to a directory `unknown`
 - Duplicates are handled by appending a postfix `-1`, `-2`, `-3` and so on
@@ -18,7 +18,7 @@ The folder structure created by `img-sort` will look like the following example:
 ├── 2021
 │   ├── 2021-01
 │   │   ├── 2021-01-07_11.23.44.jpg
-│   │   ├── 2021-01-07_13.24.53.png
+│   │   ├── 2021-01-07_13.24.53.heic
 │   │   ├── 2021-01-07_20.27.47.jpg
 │   │   ├── 2021-01-07_20.27.47-1.jpg
 │   │   ├── 2021-01-09_15.58.24.jpg
