@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	// TODO: find method to bundle this program with exiftool directly
-	// there's a function to set another location instead of $PATH: SetExiftoolBinaryPath
 	"github.com/barasher/go-exiftool"
 )
 
@@ -104,15 +102,7 @@ func isFileExisting(path string) bool {
 }
 
 func decodeExif(path string) (exiftool.FileMetadata, error) {
-	execPath, err := os.Executable()
-	if err != nil {
-		return exiftool.FileMetadata{}, err
-	}
-
-	binPath := filepath.Join(filepath.Dir(execPath), "bin")
-	exifToolPath := filepath.Join(binPath, "exiftool", "exiftool")
-
-	exif, err := exiftool.NewExiftool(exiftool.SetExiftoolBinaryPath(exifToolPath))
+	exif, err := exiftool.NewExiftool()
 	if err != nil {
 		return exiftool.FileMetadata{}, err
 	}
