@@ -95,10 +95,5 @@ img-sort --source /path/to/source --target /path/to/target --modtime
 
 1. Clone this repository: `git clone https://github.com/patrickap/img-sort.git`
 2. Navigate into the project directory: `cd img-sort`
-3. Build the tool:
-
-```bash
-sh build.sh
-```
-
+3. Build the tool: `sh build.sh`
 4. Run the binary: `build/img-sort`
