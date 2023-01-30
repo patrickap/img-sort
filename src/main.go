@@ -13,6 +13,7 @@ import (
 )
 
 var v = "v0.0.2"
+var exifInstance *exiftool.Exiftool
 
 func main() {
 	version := flag.Bool("version", false, "version info")
@@ -33,10 +34,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := process(*source, *target, *modtime)
+	// Create single exiftool instance
+	var exifErr error
+	exifInstance, exifErr = exiftool.NewExiftool()
+	if exifErr != nil {
+		fmt.Println(exifErr)
+		os.Exit(1)
+	}
+	defer exifInstance.Close()
 
-	if err != nil {
-		fmt.Println(err)
+	processErr := process(*source, *target, *modtime)
+
+	if processErr != nil {
+		fmt.Println(processErr)
 		os.Exit(1)
 	}
 }
@@ -102,13 +112,12 @@ func isFileExisting(path string) bool {
 }
 
 func decodeExif(path string) (exiftool.FileMetadata, error) {
-	exif, err := exiftool.NewExiftool()
-	if err != nil {
-		return exiftool.FileMetadata{}, err
+	fileExif := exifInstance.ExtractMetadata(path)[0]
+	if fileExif.Err != nil {
+		return exiftool.FileMetadata{}, fileExif.Err
 	}
-	defer exif.Close()
 
-	return exif.ExtractMetadata(path)[0], nil
+	return fileExif, nil
 }
 
 func decodeExifDateTime(path, layout string, modtime bool) (time.Time, error) {
