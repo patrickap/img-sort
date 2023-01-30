@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -8,15 +9,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rwcarlsen/goexif/exif"
+	"github.com/barasher/go-exiftool"
 )
 
-var v = "v0.0.1"
+var v = "v0.0.2"
+var exifInstance *exiftool.Exiftool
 
 func main() {
 	version := flag.Bool("version", false, "version info")
 	source := flag.String("source", "", "source path")
 	target := flag.String("target", "", "target path")
+	modtime := flag.Bool("modtime", false, "modification time fallback")
 
 	flag.Parse()
 
@@ -31,8 +34,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create single exiftool instance
+	var exifErr error
+	exifInstance, exifErr = exiftool.NewExiftool()
+	if exifErr != nil {
+		fmt.Println(exifErr)
+		os.Exit(1)
+	}
+	defer exifInstance.Close()
+
+	processErr := process(*source, *target, *modtime)
+
+	if processErr != nil {
+		fmt.Println(processErr)
+		os.Exit(1)
+	}
+}
+
+func process(source, target string, modtime bool) error {
 	// Recursively read source directory
-	err := filepath.Walk(*source, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -47,10 +68,12 @@ func main() {
 			return nil
 		}
 
-		fileTime, err := decodeExifTime(path)
+		fmt.Printf("\nProcessing file %s\n", path)
+
+		fileTime, err := decodeExifDateTime(path, "2006:01:02 15:04:05", modtime)
 		// If no exif data is available move file to 'unknown' directory
 		if err != nil {
-			newPath := filepath.Join(*target, "unknown", filepath.Base(path))
+			newPath := filepath.Join(target, "unknown", filepath.Base(path))
 
 			return moveFile(path, newPath)
 		}
@@ -59,15 +82,12 @@ func main() {
 		yearDir := fmt.Sprintf("%d", fileTime.Year())
 		monthDir := fmt.Sprintf("%d-%02d", fileTime.Year(), fileTime.Month())
 		fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileTime.Year(), fileTime.Month(), fileTime.Day(), fileTime.Hour(), fileTime.Minute(), fileTime.Second(), filepath.Ext(path))
-		newPath := filepath.Join(*target, yearDir, monthDir, fileName)
+		newPath := filepath.Join(target, yearDir, monthDir, fileName)
 
 		return moveFile(path, newPath)
 	})
 
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	return err
 }
 
 func isExtensionValid(path string) bool {
@@ -91,28 +111,59 @@ func isFileExisting(path string) bool {
 	return !info.IsDir()
 }
 
-func decodeExif(path string) (*exif.Exif, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
+func decodeExif(path string) (exiftool.FileMetadata, error) {
+	fileExif := exifInstance.ExtractMetadata(path)[0]
+	if fileExif.Err != nil {
+		return exiftool.FileMetadata{}, fileExif.Err
 	}
-	defer file.Close()
 
-	return exif.Decode(file)
+	return fileExif, nil
 }
 
-func decodeExifTime(path string) (time.Time, error) {
-	exifData, err := decodeExif(path)
-	if err != nil {
-		info, err := os.Stat(path)
-		if err != nil {
-			return time.Time{}, err
-		}
+func decodeExifDateTime(path, layout string, modtime bool) (time.Time, error) {
+	fmt.Printf("Decoding exif datetime of %s\n", filepath.Base(path))
 
-		return info.ModTime(), err
+	fileExif, err := decodeExif(path)
+	if err != nil {
+		return time.Time{}, err
 	}
 
-	return exifData.DateTime()
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if fileExif.Fields["DateTimeOriginal"] != nil {
+		date, err := time.Parse(layout, fileExif.Fields["DateTimeOriginal"].(string))
+		if err == nil {
+			fmt.Println("Using DateTimeOriginal (exif)")
+			return date, nil
+		}
+	}
+
+	if fileExif.Fields["CreateDate"] != nil {
+		date, err := time.Parse(layout, fileExif.Fields["CreateDate"].(string))
+		if err == nil {
+			fmt.Println("Using CreateDate (exif)")
+			return date, nil
+		}
+	}
+
+	if modtime == true {
+		if fileExif.Fields["ModifyDate"] != nil {
+			date, err := time.Parse(layout, fileExif.Fields["ModifyDate"].(string))
+			if err == nil {
+				fmt.Println("Fallback to ModifyDate (exif)")
+				return date, nil
+			}
+		}
+
+		fmt.Println("Fallback to ModTime (file)")
+		return fileInfo.ModTime(), nil
+	} else {
+		fmt.Println("No datetime available")
+		return time.Time{}, errors.New("Missing datetime")
+	}
 }
 
 func moveFile(path, newPath string) error {
@@ -140,6 +191,6 @@ func moveFile(path, newPath string) error {
 	// Transform file base and extension to lowercase
 	newPath = filepath.Join(filepath.Dir(newPath), strings.ToLower(filepath.Base(newPath)))
 
-	fmt.Printf("Move: %s -> %s\n", filepath.Base(path), newPath)
+	fmt.Printf("Move file to %s\n", newPath)
 	return os.Rename(path, newPath)
 }
