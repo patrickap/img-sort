@@ -148,10 +148,23 @@ func decodeExifDateTime(path, layout string, modtime bool) (FileDateTime, error)
 		return FileDateTime{}, err
 	}
 
+	// Debug exif fields
+	// for k, v := range fileExif.Fields {
+	// 	fmt.Printf("[%v] %v\n", k, v)
+	// }
+
 	if fileExif.Fields["DateTimeOriginal"] != nil {
 		time, err := time.Parse(layout, fileExif.Fields["DateTimeOriginal"].(string))
 		if err == nil {
 			return FileDateTime{Type: "EXIF[DateTimeOriginal]", Value: time}, nil
+		}
+	}
+
+	// Apple uses CreationDate for .mov
+	if fileExif.Fields["CreationDate"] != nil {
+		time, err := time.Parse(layout, fileExif.Fields["CreationDate"].(string))
+		if err == nil {
+			return FileDateTime{Type: "EXIF[CreationDate]", Value: time}, nil
 		}
 	}
 
