@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/barasher/go-exiftool"
@@ -17,29 +15,34 @@ type FileDateTime struct {
 	Value time.Time
 }
 
-var v = "v0.0.2"
+var verison = "v0.0.3"
+
+var versionFlag bool
+var sourceFlag string
+var targetFlag string
+var modtimeFlag bool
+
 var exifInstance *exiftool.Exiftool
 
 func main() {
-	version := flag.Bool("version", false, "version info")
-	source := flag.String("source", "", "source path")
-	target := flag.String("target", "", "target path")
-	modtime := flag.Bool("modtime", false, "modification time fallback")
-
+	flag.BoolVar(&versionFlag, "version", false, "version info")
+	flag.StringVar(&sourceFlag, "source", "", "source path")
+	flag.StringVar(&targetFlag, "target", "", "target path")
+	flag.BoolVar(&modtimeFlag, "modtime", false, "modification time fallback")
 	flag.Parse()
 
-	if *version != false {
-		fmt.Printf("Version: %s\n", v)
+	if versionFlag {
+		fmt.Printf("Version: %s\n", verison)
 		os.Exit(0)
 	}
 
-	if *source == "" || *target == "" {
+	if sourceFlag == "" || targetFlag == "" {
 		fmt.Println("Error: --source and --target are required flags.")
 		fmt.Println("Usage: img-sort --source /path/to/source --target /path/to/target")
 		os.Exit(1)
 	}
 
-	// Create single exiftool instance
+	// Create exiftool instance
 	var exifErr error
 	exifInstance, exifErr = exiftool.NewExiftool()
 	if exifErr != nil {
@@ -49,170 +52,61 @@ func main() {
 	defer exifInstance.Close()
 
 	// Recursively read source directory
-	processErr := filepath.Walk(*source, func(path string, info os.FileInfo, err error) error {
+	processErr := filepath.Walk(sourceFlag, func(path string, fileInfo os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		// Skip directories, files only
-		if info.IsDir() {
+		if fileInfo.IsDir() {
 			return nil
 		}
 
-		// Allow valid file extensions only
-		if !isExtensionValid(path) {
+		// Allow only these file extensions
+		if !isExtension(path, allowedExtensions) {
 			return nil
 		}
 
-		fmt.Printf("\nProcessing file: %s\n", filepath.Base(path))
-
-		fileTime, err := decodeExifDateTime(path, "2006:01:02 15:04:05", *modtime)
+		fileTime, err := decodeExifDate(path, exifFields, dateFormats)
 		if err != nil {
-			fmt.Println("Extracted time: <nil>")
-
-			// If no exif data is available move file to 'unknown' directory
-			newPath := filepath.Join(*target, "unknown", filepath.Base(path))
-
-			finalPath, err := moveFile(path, newPath)
-			if err != nil {
-				return err
+			if modtimeFlag {
+				fileTime = FileDateTime{Type: "File[ModTime]", Value: fileInfo.ModTime()}
+			} else {
+				return moveFileToUnknown(path, targetFlag)
 			}
-
-			fmt.Printf("Moved file: %s\n", finalPath)
-			return nil
 		}
 
-		fmt.Printf("Extracted time: %s\n", fileTime.Type)
-
-		// Rename file and move it to target directory
-		yearDir := fmt.Sprintf("%d", fileTime.Value.Year())
-		monthDir := fmt.Sprintf("%d-%02d", fileTime.Value.Year(), fileTime.Value.Month())
-		fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileTime.Value.Year(), fileTime.Value.Month(), fileTime.Value.Day(), fileTime.Value.Hour(), fileTime.Value.Minute(), fileTime.Value.Second(), filepath.Ext(path))
-		newPath := filepath.Join(*target, yearDir, monthDir, fileName)
-
-		finalPath, err := moveFile(path, newPath)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("Moved file: %s\n", finalPath)
-		return nil
+		return moveFileToTarget(path, targetFlag, fileTime)
 	})
 	if processErr != nil {
 		fmt.Println(processErr)
 		os.Exit(1)
 	}
 
-	fmt.Println("\nProcess completed")
 	os.Exit(0)
 }
 
-func isExtensionValid(path string) bool {
-	extensions := []string{".tiff", ".tif", ".gif", ".jpeg", ".jpg", ".png", ".img", ".bmp", ".raw", ".heif", ".heic", ".mkv", ".avi", ".mov", ".wmv", ".mp4", ".m4v", ".mpg", ".mpeg", ".hevc"}
+func moveFileToUnknown(path, targetRoot string) error {
+	newPath := filepath.Join(targetRoot, "unknown", filepath.Base(path))
 
-	for _, ext := range extensions {
-		if strings.ToLower(filepath.Ext(path)) == ext {
-			return true
-		}
-	}
-
-	return false
-}
-
-func isFileExisting(path string) bool {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false
-	}
-
-	return !info.IsDir()
-}
-
-func decodeExif(path string) (exiftool.FileMetadata, error) {
-	fileExif := exifInstance.ExtractMetadata(path)[0]
-	if fileExif.Err != nil {
-		return exiftool.FileMetadata{}, fileExif.Err
-	}
-
-	return fileExif, nil
-}
-
-func decodeExifDateTime(path, layout string, modtime bool) (FileDateTime, error) {
-	fileExif, err := decodeExif(path)
+	_, err := moveFile(path, newPath)
 	if err != nil {
-		return FileDateTime{}, err
+		return err
 	}
 
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		return FileDateTime{}, err
-	}
-
-	// Debug exif fields
-	// for k, v := range fileExif.Fields {
-	// 	fmt.Printf("[%v] %v\n", k, v)
-	// }
-
-	if fileExif.Fields["DateTimeOriginal"] != nil {
-		time, err := time.Parse(layout, fileExif.Fields["DateTimeOriginal"].(string))
-		if err == nil {
-			return FileDateTime{Type: "EXIF[DateTimeOriginal]", Value: time}, nil
-		}
-	}
-
-	// Apple uses CreationDate for .mov
-	if fileExif.Fields["CreationDate"] != nil {
-		time, err := time.Parse(layout, fileExif.Fields["CreationDate"].(string))
-		if err == nil {
-			return FileDateTime{Type: "EXIF[CreationDate]", Value: time}, nil
-		}
-	}
-
-	if fileExif.Fields["CreateDate"] != nil {
-		time, err := time.Parse(layout, fileExif.Fields["CreateDate"].(string))
-		if err == nil {
-			return FileDateTime{Type: "EXIF[CreateDate]", Value: time}, nil
-		}
-	}
-
-	if modtime == true {
-		if fileExif.Fields["ModifyDate"] != nil {
-			time, err := time.Parse(layout, fileExif.Fields["ModifyDate"].(string))
-			if err == nil {
-				return FileDateTime{Type: "EXIF[ModifyDate]", Value: time}, nil
-			}
-		}
-
-		time := fileInfo.ModTime()
-		return FileDateTime{Type: "FILE[ModTime]", Value: time}, nil
-	} else {
-		return FileDateTime{}, errors.New("Could not decode time")
-	}
+	return nil
 }
 
-func moveFile(path, newPath string) (string, error) {
-	err := os.MkdirAll(filepath.Dir(newPath), os.ModePerm)
+func moveFileToTarget(path string, targetRoot string, fileTime FileDateTime) error {
+	yearDir := fmt.Sprintf("%d", fileTime.Value.Year())
+	monthDir := fmt.Sprintf("%d-%02d", fileTime.Value.Year(), fileTime.Value.Month())
+	fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileTime.Value.Year(), fileTime.Value.Month(), fileTime.Value.Day(), fileTime.Value.Hour(), fileTime.Value.Minute(), fileTime.Value.Second(), filepath.Ext(path))
+	newPath := filepath.Join(targetRoot, yearDir, monthDir, fileName)
+
+	_, err := moveFile(path, newPath)
 	if err != nil {
-		return path, err
+		return err
 	}
 
-	// If target file already exists, append a postfix
-	if isFileExisting(newPath) {
-		fileExt := filepath.Ext(newPath)
-		fileBase := filepath.Base(newPath)
-		fileName := strings.TrimSuffix(fileBase, fileExt)
-
-		for i := 1; ; i++ {
-			fileBaseIdx := fmt.Sprintf("%s-%d%s", fileName, i, fileExt)
-			newPathIdx := filepath.Join(filepath.Dir(newPath), fileBaseIdx)
-			if !isFileExisting(newPathIdx) {
-				newPath = newPathIdx
-				break
-			}
-		}
-	}
-
-	// Transform file base and extension to lowercase
-	newPath = filepath.Join(filepath.Dir(newPath), strings.ToLower(filepath.Base(newPath)))
-	return newPath, os.Rename(path, newPath)
+	return nil
 }
