@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -53,13 +52,13 @@ func main() {
 			return err
 		}
 
-		// Skip directories, files only
+		// Skip directories, process files only
 		if fileInfo.IsDir() {
 			return nil
 		}
 
-		// Allow only these file extensions
-		if !isExtAllowed(path, allowedExtensions) {
+		// Allow only specified file extensions
+		if !isExtension(path, FILE_EXTENSIONS_ALLOWED) {
 			return nil
 		}
 
@@ -67,16 +66,23 @@ func main() {
 		var fileDate time.Time
 		var fileError error
 		fileExif, fileError := decodeExif(path)
-		fileDate, fileError = parseExifCreateDate(fileExif)
+		fileDate, fileError = parseCreationDate(fileExif)
 		if fileError != nil {
 			fileDate = fileInfo.ModTime()
 
 			if !modtimeFlag {
-				return moveFileToUnknown(path, targetFlag)
+				// Move file to unknown
+				newPath := filepath.Join(targetFlag, "unknown", filepath.Base(path))
+				return moveFile(path, newPath)
 			}
 		}
 
-		return moveFileToTarget(path, targetFlag, fileDate)
+		// Move file to destination
+		yearDir := fmt.Sprintf("%d", fileDate.Year())
+		monthDir := fmt.Sprintf("%d-%02d", fileDate.Year(), fileDate.Month())
+		fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), filepath.Ext(path))
+		newPath := filepath.Join(targetFlag, yearDir, monthDir, fileName)
+		return moveFile(path, newPath)
 	})
 
 	if processErr != nil {
@@ -85,29 +91,4 @@ func main() {
 	}
 
 	os.Exit(0)
-}
-
-func parseExifCreateDate(fileExif exiftool.FileMetadata) (time.Time, error) {
-	var fileDate time.Time
-	var fileDateErr error
-	for _, exifField := range exifDateFields {
-		if fileDate, fileDateErr = parseDate(fileExif.Fields[exifField], commonDateFormats); fileDateErr == nil {
-			return fileDate, nil
-		}
-	}
-
-	return time.Time{}, errors.New("Could not parse exif create date")
-}
-
-func moveFileToUnknown(path, targetRoot string) error {
-	newPath := filepath.Join(targetRoot, "unknown", filepath.Base(path))
-	return moveFile(path, newPath)
-}
-
-func moveFileToTarget(path string, targetRoot string, fileDate time.Time) error {
-	yearDir := fmt.Sprintf("%d", fileDate.Year())
-	monthDir := fmt.Sprintf("%d-%02d", fileDate.Year(), fileDate.Month())
-	fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), filepath.Ext(path))
-	newPath := filepath.Join(targetRoot, yearDir, monthDir, fileName)
-	return moveFile(path, newPath)
 }

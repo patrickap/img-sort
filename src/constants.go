@@ -1,6 +1,6 @@
 package main
 
-var allowedExtensions = []string{
+var FILE_EXTENSIONS_ALLOWED = []string{
 	".tiff",
 	".tif",
 	".gif",
@@ -23,14 +23,19 @@ var allowedExtensions = []string{
 	".hevc",
 }
 
-var exifDateFields = []string{
+var EXIF_FIELDS_CREATION_DATE = []string{
 	"DateTimeOriginal",
 	"CreationDate",
 	"CreationTime",
 	"CreateDate",
 }
 
-var commonDateFormats = []string{
+var DATE_FORMATS_COMMON = []string{
+	"2006:01:02 15:04:05",
+	"2006:01:02 15:04:05Z",
+	"2006:01:02 15:04:05+07:00",
+	"2006:01:02 15:04:05-07:00",
+
 	"2006-01-02T15:04:05",
 	"2006-01-02T15:04:05Z",
 	"2006-01-02T15:04:05+07:00",
@@ -41,15 +46,15 @@ var commonDateFormats = []string{
 	"2006-01-02 15:04:05+07:00",
 	"2006-01-02 15:04:05-07:00",
 
-	"2006:01:02 15:04:05",
-	"2006:01:02 15:04:05Z",
-	"2006:01:02 15:04:05+07:00",
-	"2006:01:02 15:04:05-07:00",
-
 	"2006/01/02 15:04:05",
 	"2006/01/02 15:04:05Z",
 	"2006/01/02 15:04:05+07:00",
 	"2006/01/02 15:04:05-07:00",
+
+	"02-01-2006T15:04:05",
+	"02-01-2006T15:04:05Z",
+	"02-01-2006T15:04:05+07:00",
+	"02-01-2006T15:04:05-07:00",
 
 	"02-01-2006 15:04:05",
 	"02-01-2006 15:04:05Z",

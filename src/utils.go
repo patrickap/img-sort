@@ -12,7 +12,7 @@ import (
 	"github.com/barasher/go-exiftool"
 )
 
-func isExtAllowed(path string, extensions []string) bool {
+func isExtension(path string, extensions []string) bool {
 	for _, ext := range extensions {
 		if strings.ToLower(filepath.Ext(path)) == ext {
 			return true
@@ -52,6 +52,18 @@ func decodeExif(path string) (exiftool.FileMetadata, error) {
 	}
 
 	return fileExif, nil
+}
+
+func parseCreationDate(fileExif exiftool.FileMetadata) (time.Time, error) {
+	var fileDate time.Time
+	var fileDateErr error
+	for _, exifField := range EXIF_FIELDS_CREATION_DATE {
+		if fileDate, fileDateErr = parseDate(fileExif.Fields[exifField], DATE_FORMATS_COMMON); fileDateErr == nil {
+			return fileDate, nil
+		}
+	}
+
+	return time.Time{}, errors.New("Could not parse exif creation date")
 }
 
 func moveFile(path, newPath string) error {
