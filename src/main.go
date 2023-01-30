@@ -104,7 +104,15 @@ func isFileExisting(path string) bool {
 }
 
 func decodeExif(path string) (exiftool.FileMetadata, error) {
-	exif, err := exiftool.NewExiftool()
+	execPath, err := os.Executable()
+	if err != nil {
+		return exiftool.FileMetadata{}, err
+	}
+
+	binPath := filepath.Join(filepath.Dir(execPath), "bin")
+	exifToolPath := filepath.Join(binPath, "exiftool", "exiftool")
+
+	exif, err := exiftool.NewExiftool(exiftool.SetExiftoolBinaryPath(exifToolPath))
 	if err != nil {
 		return exiftool.FileMetadata{}, err
 	}

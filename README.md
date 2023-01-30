@@ -60,8 +60,7 @@ img-sort --source /path/to/source --target /path/to/target
 3. Build the tool:
 
 ```bash
-cd src
-go build -o ../build/img-sort
+sh build.sh
 ```
 
 4. Run the binary: `build/img-sort`
