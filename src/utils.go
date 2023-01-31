@@ -12,7 +12,7 @@ import (
 	"github.com/barasher/go-exiftool"
 )
 
-func isExtension(path string, extensions []string) bool {
+func isFileExtension(path string, extensions []string) bool {
 	for _, ext := range extensions {
 		if strings.ToLower(filepath.Ext(path)) == ext {
 			return true
@@ -22,13 +22,22 @@ func isExtension(path string, extensions []string) bool {
 	return false
 }
 
-func isFileExist(path string) bool {
+func isFileExisting(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false
 	}
 
 	return !fileInfo.IsDir()
+}
+
+func decodeExif(path string) (exiftool.FileMetadata, error) {
+	fileExif := exiftoolInstance.ExtractMetadata(path)[0]
+	if fileExif.Err != nil {
+		return exiftool.FileMetadata{}, fileExif.Err
+	}
+
+	return fileExif, nil
 }
 
 func parseDate(dateString interface{}, dateFormats []string) (time.Time, error) {
@@ -45,20 +54,11 @@ func parseDate(dateString interface{}, dateFormats []string) (time.Time, error) 
 	return time.Time{}, errors.New("Could not parse date")
 }
 
-func decodeExif(path string) (exiftool.FileMetadata, error) {
-	fileExif := exiftoolInstance.ExtractMetadata(path)[0]
-	if fileExif.Err != nil {
-		return exiftool.FileMetadata{}, fileExif.Err
-	}
-
-	return fileExif, nil
-}
-
-func parseCreationDate(fileExif exiftool.FileMetadata) (time.Time, error) {
+func parseExifDate(fileExif exiftool.FileMetadata, exifFields, dateFormats []string) (time.Time, error) {
 	var fileDate time.Time
 	var fileDateErr error
-	for _, exifField := range EXIF_FIELDS_CREATION_DATE {
-		if fileDate, fileDateErr = parseDate(fileExif.Fields[exifField], DATE_FORMATS_COMMON); fileDateErr == nil {
+	for _, exifField := range exifFields {
+		if fileDate, fileDateErr = parseDate(fileExif.Fields[exifField], dateFormats); fileDateErr == nil {
 			return fileDate, nil
 		}
 	}
@@ -73,7 +73,7 @@ func moveFile(path, newPath string) error {
 	}
 
 	// If target file already exists, append a postfix
-	if isFileExist(newPath) {
+	if isFileExisting(newPath) {
 		fileExt := filepath.Ext(newPath)
 		fileBase := filepath.Base(newPath)
 		fileName := strings.TrimSuffix(fileBase, fileExt)
@@ -81,7 +81,7 @@ func moveFile(path, newPath string) error {
 		for i := 1; ; i++ {
 			fileBaseIdx := fmt.Sprintf("%s-%d%s", fileName, i, fileExt)
 			newPathIdx := filepath.Join(filepath.Dir(newPath), fileBaseIdx)
-			if !isFileExist(newPathIdx) {
+			if !isFileExisting(newPathIdx) {
 				newPath = newPathIdx
 				break
 			}

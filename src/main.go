@@ -58,7 +58,7 @@ func main() {
 		}
 
 		// Allow only specified file extensions
-		if !isExtension(path, FILE_EXTENSIONS_ALLOWED) {
+		if !isFileExtension(path, FILE_EXTENSIONS_ALLOWED) {
 			return nil
 		}
 
@@ -66,8 +66,9 @@ func main() {
 		var fileDate time.Time
 		var fileError error
 		fileExif, fileError := decodeExif(path)
-		fileDate, fileError = parseCreationDate(fileExif)
+		fileDate, fileError = parseExifDate(fileExif, EXIF_FIELDS_DATE_CREATED, EXIF_FIELDS_DATE_FORMAT)
 		if fileError != nil {
+			// Set file modtime as fallback
 			fileDate = fileInfo.ModTime()
 
 			if !modtimeFlag {
