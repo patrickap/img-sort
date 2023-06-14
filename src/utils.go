@@ -88,7 +88,5 @@ func moveFile(path, newPath string) error {
 		}
 	}
 
-	// Transform file base and extension to lowercase
-	newPath = filepath.Join(filepath.Dir(newPath), strings.ToLower(filepath.Base(newPath)))
 	return os.Rename(path, newPath)
 }
