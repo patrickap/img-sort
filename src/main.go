@@ -11,7 +11,7 @@ import (
 	"github.com/barasher/go-exiftool"
 )
 
-var verison = "v0.0.4"
+var verison = "v0.0.5"
 
 var versionFlag bool
 var sourceFlag string
@@ -58,11 +58,11 @@ func main() {
 			return nil
 		}
 
-		fmt.Printf("[INF]: Processing %s\n", path)
+		fmt.Printf("INF: Processing %s\n", path)
 
 		// Allow only specified file extensions
 		if !isFileExtension(path, FILE_EXTENSIONS_ALLOWED) {
-			fmt.Printf("[WRN]: Extension %s not supported\n", filepath.Ext(path))
+			fmt.Printf("WRN: Extension %s not supported\n", filepath.Ext(path))
 			return nil
 		}
 
@@ -75,8 +75,8 @@ func main() {
 			if !modtimeFlag {
 				// Move file to unknown
 				newPath := filepath.Join(targetFlag, "unknown", filepath.Base(path))
-				fmt.Println("[WRN]: Could not parse date (no modtime fallback)")
-				fmt.Printf("[INF]: Moving to %s\n", newPath)
+				fmt.Println("WRN: Could not parse date (no modtime fallback)")
+				fmt.Printf("INF: Moving to %s\n", newPath)
 				return moveFile(path, newPath)
 			}
 
@@ -89,16 +89,16 @@ func main() {
 		monthDir := fmt.Sprintf("%d-%02d", fileDate.Year(), fileDate.Month())
 		fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), strings.ToLower(filepath.Ext(path)))
 		newPath := filepath.Join(targetFlag, yearDir, monthDir, fileName)
-		fmt.Printf("[INF]: Moving to %s\n", newPath)
+		fmt.Printf("INF: Moving to %s\n", newPath)
 		return moveFile(path, newPath)
 	})
 
 	if processErr != nil {
 		fmt.Println(processErr)
-		fmt.Println("[ERR]: View log output above")
+		fmt.Println("ERR: View log output above")
 		os.Exit(1)
 	}
 
-	fmt.Println("[INF]: Completed successfully")
+	fmt.Println("INF: Completed successfully")
 	os.Exit(0)
 }
