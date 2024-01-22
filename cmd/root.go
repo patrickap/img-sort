@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/patrickap/img-sort/m/v2/internal/config"
 	"github.com/patrickap/img-sort/m/v2/internal/exif"
@@ -42,27 +41,25 @@ var rootCmd = &cobra.Command{
 			log.Info().Msgf("Processing %s", path)
 
 			// Allow only specified file extensions
-			if !util.IsExtension(path, config.FILE_EXTENSIONS_ALLOWED) {
+			if !util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, path) {
 				log.Warn().Msgf("Extension %s not supported", filepath.Ext(path))
 				return nil
 			}
 
 			// Decode file exif data and parse create date
-			var fileDate time.Time
-			var fileError error
-			fileExif, fileError := exif.Decode(path)
-			fileDate, fileError = exif.ParseDate(fileExif, config.EXIF_FIELDS_DATE_CREATED, config.EXIF_FIELDS_DATE_FORMAT)
-			if fileError != nil {
-				if !modtimeFlag {
+			fileExif, fileExifErr := exif.Decode(path)
+			fileDate, fileDateErr := exif.ParseDate(config.EXIF_FIELDS_DATE_FORMAT, config.EXIF_FIELDS_DATE_CREATED, fileExif)
+			if fileExifErr != nil || fileDateErr != nil {
+				if modtimeFlag {
+					// Use file modtime as fallback
+					fileDate = fileInfo.ModTime()
+				} else {
 					// Move file to unknown
 					newPath := filepath.Join(targetArg, "unknown", filepath.Base(path))
 					log.Warn().Msg("Failed to parse date (no modtime fallback)")
 					log.Info().Msgf("Moving to %s", newPath)
-					return util.Move(path, newPath)
+					return util.MoveFile(path, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
 				}
-
-				// Set file modtime as fallback
-				fileDate = fileInfo.ModTime()
 			}
 
 			// Move file to destination
@@ -71,7 +68,7 @@ var rootCmd = &cobra.Command{
 			fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), strings.ToLower(filepath.Ext(path)))
 			newPath := filepath.Join(targetArg, yearDir, monthDir, fileName)
 			log.Info().Msgf("Moving to %s", newPath)
-			return util.Move(path, newPath)
+			return util.MoveFile(path, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
 		})
 
 		if processErr != nil {

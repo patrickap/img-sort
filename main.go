@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/patrickap/img-sort/m/v2/cmd"
+	"github.com/patrickap/img-sort/m/v2/internal/exif"
 )
 
 func main() {
@@ -14,6 +15,7 @@ func main() {
 
 	go func() {
 		<-signals
+		exif.Instance().Close()
 		os.Exit(1)
 	}()
 

@@ -2,7 +2,6 @@ package util
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -10,9 +9,9 @@ import (
 	"time"
 )
 
-func IsExtension(file string, extensions []string) bool {
-	for _, ext := range extensions {
-		if strings.ToLower(filepath.Ext(file)) == ext {
+func IsFileExtension(extensions []string, path string) bool {
+	for _, extension := range extensions {
+		if strings.ToLower(filepath.Ext(path)) == extension {
 			return true
 		}
 	}
@@ -20,8 +19,8 @@ func IsExtension(file string, extensions []string) bool {
 	return false
 }
 
-func IsExisting(file string) bool {
-	fileInfo, err := os.Stat(file)
+func IsFileExisting(path string) bool {
+	fileInfo, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false
 	}
@@ -29,7 +28,7 @@ func IsExisting(file string) bool {
 	return !fileInfo.IsDir()
 }
 
-func ParseDate(dateString interface{}, dateFormats []string) (time.Time, error) {
+func ParseDate(dateFormats []string, dateString interface{}) (time.Time, error) {
 	isString := dateString != nil && reflect.TypeOf(dateString).Kind() == reflect.String
 	if isString {
 		for _, format := range dateFormats {
@@ -43,26 +42,14 @@ func ParseDate(dateString interface{}, dateFormats []string) (time.Time, error) 
 	return time.Time{}, errors.New("failed to parse date")
 }
 
-func Move(path, newPath string) error {
+func MoveFile(path string, newPath string, duplicateFileStrategy func(path string) string) error {
 	err := os.MkdirAll(filepath.Dir(newPath), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	// If target file already exists, append a postfix
-	if IsExisting(newPath) {
-		fileExt := filepath.Ext(newPath)
-		fileBase := filepath.Base(newPath)
-		fileName := strings.TrimSuffix(fileBase, fileExt)
-
-		for i := 1; ; i++ {
-			fileBaseIdx := fmt.Sprintf("%s-%d%s", fileName, i, fileExt)
-			newPathIdx := filepath.Join(filepath.Dir(newPath), fileBaseIdx)
-			if !IsExisting(newPathIdx) {
-				newPath = newPathIdx
-				break
-			}
-		}
+	if IsFileExisting(newPath) {
+		newPath = duplicateFileStrategy(newPath)
 	}
 
 	return os.Rename(path, newPath)

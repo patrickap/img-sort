@@ -37,11 +37,10 @@ func Decode(path string) (exiftool.FileMetadata, error) {
 	return fileExif, nil
 }
 
-func ParseDate(fileExif exiftool.FileMetadata, exifFields, dateFormats []string) (time.Time, error) {
-	var fileDate time.Time
-	var fileDateErr error
+func ParseDate(dateFormats []string, exifFields []string, fileExif exiftool.FileMetadata) (time.Time, error) {
 	for _, exifField := range exifFields {
-		if fileDate, fileDateErr = util.ParseDate(fileExif.Fields[exifField], dateFormats); fileDateErr == nil {
+		fileDate, err := util.ParseDate(dateFormats, fileExif.Fields[exifField])
+		if err == nil {
 			return fileDate, nil
 		}
 	}

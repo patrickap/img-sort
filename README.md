@@ -7,7 +7,7 @@ Introducing `img-sort`, a little golang tool that helps you keep your photos and
 - Simple and easy to use with flags
 - Supports various file formats including `JPEG`, `HEIC`, `MP4`, `MOV` and more
 - Reads the exif data if available otherwise uses the modification time
-- Photos and videos without date/time information are moved to a directory `unknown`
+- Photos and videos without date or time information are moved to a directory `unknown`
 - Duplicates are handled by appending a postfix `-1`, `-2`, `-3` and so on
 
 ## Folder Structure
@@ -72,24 +72,17 @@ After all dependencies are installed the executable of `img-sort` can be added t
 
 ## Usage
 
-Simply run `img-sort` and set `--source` and `--target`. The tool will take care of the rest.
+Simply run `img-sort <source> <target> [flags]`. The tool will take care of the rest.
 
 ```bash
-img-sort --source /path/to/source --target /path/to/target
+img-sort /path/to/source /path/to/target
 ```
 
 If there is no date information available for given photos or videos the file modification time can be used as a fallback.
 
 ```bash
-img-sort --source /path/to/source --target /path/to/target --modtime
+img-sort /path/to/source /path/to/target --modtime
 ```
-
-### Available flags
-
-- `--version`: Version info
-- `--source`: Source path
-- `--target`: Target path
-- `--modtime`: Modification time fallback
 
 ## Building from sources
 

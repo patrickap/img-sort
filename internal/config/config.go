@@ -1,6 +1,14 @@
 package config
 
-var FILE_EXTENSIONS_ALLOWED = []string{
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"github.com/patrickap/img-sort/m/v2/internal/util"
+)
+
+var FILE_EXTENSIONS_SUPPORTED = []string{
 	".tiff",
 	".tif",
 	".gif",
@@ -58,4 +66,17 @@ var EXIF_FIELDS_DATE_FORMAT = []string{
 	"2006/01/02 15:04:05Z",
 	"2006/01/02 15:04:05+07:00",
 	"2006/01/02 15:04:05-07:00",
+}
+
+var DEFAULT_DUPLICATE_FILE_STRATEGY = func(path string) string {
+	fileExt := filepath.Ext(path)
+	fileBase := filepath.Base(path)
+	fileName := strings.TrimSuffix(fileBase, fileExt)
+
+	for i := 1; ; i++ {
+		newPath := filepath.Join(filepath.Dir(path), fmt.Sprintf("%s-%d%s", fileName, i, fileExt))
+		if !util.IsFileExisting(newPath) {
+			return newPath
+		}
+	}
 }
