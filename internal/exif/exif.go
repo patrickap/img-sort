@@ -20,8 +20,6 @@ func init() {
 		log.Error().Msg("Failed to initialize exiftool")
 		panic(exifErr)
 	}
-
-	defer exif.Close()
 }
 
 func Instance() *exiftool.Exiftool {

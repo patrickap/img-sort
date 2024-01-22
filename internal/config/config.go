@@ -32,7 +32,7 @@ var FILE_EXTENSIONS_SUPPORTED = []string{
 }
 
 // The order determines which exif field is tried to be read first
-// Note: The availability of exif information and the exact field names
+// The availability of exif information and the exact field names
 // may vary depending on the specific file format and software used to create it.
 var EXIF_FIELDS_DATE_CREATED = []string{
 	// tiff, tif, jpeg, jpg, img, raw, heif, heic, hevc
