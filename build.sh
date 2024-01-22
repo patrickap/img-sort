@@ -1,6 +1,4 @@
 #!/bin/bash
 
-# build
-cd src
-go build -o ../build/img-sort
-cd ..
+go mod download && \
+go build -o ./build/img-sort
