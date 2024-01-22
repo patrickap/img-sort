@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/patrickap/img-sort/m/v2/internal/config"
+	"github.com/patrickap/img-sort/m/v2/internal/exif"
 	"github.com/patrickap/img-sort/m/v2/internal/log"
 	"github.com/patrickap/img-sort/m/v2/internal/util"
 	"github.com/spf13/cobra"
@@ -41,7 +42,7 @@ var rootCmd = &cobra.Command{
 			log.Info().Msgf("Processing %s", path)
 
 			// Allow only specified file extensions
-			if !util.IsFileExtension(path, config.FILE_EXTENSIONS_ALLOWED) {
+			if !util.IsExtension(path, config.FILE_EXTENSIONS_ALLOWED) {
 				log.Warn().Msgf("Extension %s not supported", filepath.Ext(path))
 				return nil
 			}
@@ -49,15 +50,15 @@ var rootCmd = &cobra.Command{
 			// Decode file exif data and parse create date
 			var fileDate time.Time
 			var fileError error
-			fileExif, fileError := util.DecodeExif(path)
-			fileDate, fileError = util.ParseExifDate(fileExif, config.EXIF_FIELDS_DATE_CREATED, config.EXIF_FIELDS_DATE_FORMAT)
+			fileExif, fileError := exif.Decode(path)
+			fileDate, fileError = exif.ParseDate(fileExif, config.EXIF_FIELDS_DATE_CREATED, config.EXIF_FIELDS_DATE_FORMAT)
 			if fileError != nil {
 				if !modtimeFlag {
 					// Move file to unknown
 					newPath := filepath.Join(targetArg, "unknown", filepath.Base(path))
-					log.Warn().Msg("Could not parse date (no modtime fallback)")
+					log.Warn().Msg("Failed to parse date (no modtime fallback)")
 					log.Info().Msgf("Moving to %s", newPath)
-					return util.MoveFile(path, newPath)
+					return util.Move(path, newPath)
 				}
 
 				// Set file modtime as fallback
@@ -70,7 +71,7 @@ var rootCmd = &cobra.Command{
 			fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), strings.ToLower(filepath.Ext(path)))
 			newPath := filepath.Join(targetArg, yearDir, monthDir, fileName)
 			log.Info().Msgf("Moving to %s", newPath)
-			return util.MoveFile(path, newPath)
+			return util.Move(path, newPath)
 		})
 
 		if processErr != nil {
