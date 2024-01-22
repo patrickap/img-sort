@@ -13,19 +13,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var modtimeFlag bool
+var dryRunFlag bool
+var modTimeFlag bool
 
 var rootCmd = &cobra.Command{
-	Use:          "img-sort <source> <target>",
-	Version:      "v0.0.6",
-	Short:        "Process all images and videos inside <source> and move them to <target>",
-	Long:         "Process all images and videos inside <source> using exif information and move them to <target>",
-	Args:         cobra.ExactArgs(2),
-	SilenceUsage: true,
+	Use:     "img-sort <source> <target>",
+	Version: "v0.0.7",
+	Short:   "Process all images and videos inside a directory and move them to a destination",
+	Long:    "Process all images and videos inside a directory and move them to a destination",
+	Args:    cobra.ExactArgs(2),
 	RunE: func(c *cobra.Command, args []string) error {
 		sourceArg := args[0]
 		targetArg := args[1]
-		modtimeFlag := modtimeFlag
+		dryRunFlag := dryRunFlag
+		modTimeFlag := modTimeFlag
 
 		// Recursively read source directory
 		processErr := filepath.Walk(sourceArg, func(path string, fileInfo os.FileInfo, err error) error {
@@ -50,7 +51,7 @@ var rootCmd = &cobra.Command{
 			fileExif, fileExifErr := exif.Decode(path)
 			fileDate, fileDateErr := exif.ParseDate(config.EXIF_FIELDS_DATE_FORMAT, config.EXIF_FIELDS_DATE_CREATED, fileExif)
 			if fileExifErr != nil || fileDateErr != nil {
-				if modtimeFlag {
+				if modTimeFlag {
 					// Use file modtime as fallback
 					fileDate = fileInfo.ModTime()
 				} else {
@@ -58,6 +59,11 @@ var rootCmd = &cobra.Command{
 					newPath := filepath.Join(targetArg, "unknown", filepath.Base(path))
 					log.Warn().Msg("Failed to parse date (no modtime fallback)")
 					log.Info().Msgf("Moving to %s", newPath)
+
+					if dryRunFlag {
+						return nil
+					}
+
 					return util.MoveFile(path, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
 				}
 			}
@@ -68,6 +74,11 @@ var rootCmd = &cobra.Command{
 			fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), strings.ToLower(filepath.Ext(path)))
 			newPath := filepath.Join(targetArg, yearDir, monthDir, fileName)
 			log.Info().Msgf("Moving to %s", newPath)
+
+			if dryRunFlag {
+				return nil
+			}
+
 			return util.MoveFile(path, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
 		})
 
@@ -83,7 +94,8 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().BoolVarP(&modtimeFlag, "modtime", "M", false, "Use the modification time as fallback when there is no exif information")
+	rootCmd.Flags().BoolVarP(&dryRunFlag, "dry-run", "D", false, "perform a dry run without modifying data")
+	rootCmd.Flags().BoolVarP(&modTimeFlag, "mod-time", "M", false, "use file modification time as fallback")
 }
 
 func Execute() error {

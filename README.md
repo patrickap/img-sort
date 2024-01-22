@@ -78,11 +78,10 @@ Simply run `img-sort <source> <target> [flags]`. The tool will take care of the 
 img-sort /path/to/source /path/to/target
 ```
 
-If there is no date information available for given photos or videos the file modification time can be used as a fallback.
+## Available Flags
 
-```bash
-img-sort /path/to/source /path/to/target --modtime
-```
+`--dry-run` / `-D`: Perform a dry run to test a command without modifying any data.
+`--mod-time` / `-M`: If there is no date information available the file modification time can be used as a fallback.
 
 ## Building from sources
 
