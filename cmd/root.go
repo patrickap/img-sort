@@ -38,11 +38,11 @@ var rootCmd = &cobra.Command{
 				return nil
 			}
 
-			log.Info().Msgf("Processing %s\n", path)
+			log.Info().Msgf("Processing %s", path)
 
 			// Allow only specified file extensions
 			if !util.IsFileExtension(path, config.FILE_EXTENSIONS_ALLOWED) {
-				log.Warn().Msgf("Extension %s not supported\n", filepath.Ext(path))
+				log.Warn().Msgf("Extension %s not supported", filepath.Ext(path))
 				return nil
 			}
 
@@ -56,7 +56,7 @@ var rootCmd = &cobra.Command{
 					// Move file to unknown
 					newPath := filepath.Join(targetArg, "unknown", filepath.Base(path))
 					log.Warn().Msg("Could not parse date (no modtime fallback)")
-					log.Info().Msgf("Moving to %s\n", newPath)
+					log.Info().Msgf("Moving to %s", newPath)
 					return util.MoveFile(path, newPath)
 				}
 
@@ -69,7 +69,7 @@ var rootCmd = &cobra.Command{
 			monthDir := fmt.Sprintf("%d-%02d", fileDate.Year(), fileDate.Month())
 			fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), strings.ToLower(filepath.Ext(path)))
 			newPath := filepath.Join(targetArg, yearDir, monthDir, fileName)
-			log.Info().Msgf("Moving to %s\n", newPath)
+			log.Info().Msgf("Moving to %s", newPath)
 			return util.MoveFile(path, newPath)
 		})
 
