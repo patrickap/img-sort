@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/patrickap/img-sort/m/v2/internal/config"
 	"github.com/patrickap/img-sort/m/v2/internal/exif"
@@ -18,7 +20,7 @@ var modTimeFlag bool
 
 var rootCmd = &cobra.Command{
 	Use:     "img-sort <source> <target>",
-	Version: "v0.0.7",
+	Version: "v0.0.8",
 	Short:   "Process all images and videos inside a directory and move them to a destination",
 	Long:    "Process all images and videos inside a directory and move them to a destination",
 	Args:    cobra.ExactArgs(2),
@@ -30,59 +32,105 @@ var rootCmd = &cobra.Command{
 		dryRunFlag := dryRunFlag
 		modTimeFlag := modTimeFlag
 
-		processErr := filepath.Walk(sourceArg, func(path string, fileInfo os.FileInfo, err error) error {
+		log.Info().Msg("Processing files..")
+		files := []string{}
+		filesErr := filepath.WalkDir(sourceArg, func(path string, entry os.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
 
-			if fileInfo.IsDir() {
+			if entry.IsDir() {
 				return nil
 			}
 
-			log.Info().Msgf("Processing %s", path)
-
-			if !util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, path) {
-				log.Warn().Msgf("Extension %s not supported", filepath.Ext(path))
-				return nil
-			}
-
-			fileExif, fileExifErr := exif.Decode(path)
-			fileDate, fileDateErr := exif.ParseDate(config.EXIF_FIELDS_DATE_FORMAT, config.EXIF_FIELDS_DATE_CREATED, fileExif)
-			if fileExifErr != nil || fileDateErr != nil {
-				log.Warn().Msg("Failed to parse date")
-
-				if modTimeFlag {
-					log.Info().Msg("Using modification time as fallback")
-					fileDate = fileInfo.ModTime()
-				} else {
-					newPath := filepath.Join(targetArg, "unknown", filepath.Base(path))
-					log.Info().Msgf("Moving to %s", newPath)
-
-					if dryRunFlag {
-						return nil
-					}
-
-					return util.MoveFile(path, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
-				}
-			}
-
-			yearDir := fmt.Sprintf("%d", fileDate.Year())
-			monthDir := fmt.Sprintf("%d-%02d", fileDate.Year(), fileDate.Month())
-			fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), strings.ToLower(filepath.Ext(path)))
-			newPath := filepath.Join(targetArg, yearDir, monthDir, fileName)
-			log.Info().Msgf("Moving to %s", newPath)
-
-			if dryRunFlag {
-				return nil
-			}
-
-			return util.MoveFile(path, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
+			files = append(files, path)
+			return nil
 		})
 
-		if processErr != nil {
-			log.Error().Msgf("%v", processErr)
-			log.Error().Msg("View log output above")
-			return processErr
+		if filesErr != nil {
+			log.Error().Msgf("Failed to process files: %v", filesErr)
+			return filesErr
+		}
+
+		log.Info().Msg("Extracting exif...")
+		exifs, exifsErr := exif.Extract(files...)
+		if exifsErr != nil {
+			log.Error().Msgf("Failed to extract exif: %v", exifsErr)
+			return exifsErr
+		}
+
+		wg := sync.WaitGroup{}
+		filesErrCh := make(chan error, len(files))
+
+		for fileIndex, file := range files {
+			file := file
+			fileExif := exifs[fileIndex]
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				if !util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, file) {
+					log.Warn().Msgf("Extension %s not supported", filepath.Ext(file))
+					return
+				}
+
+				fileDate, fileDateErr := exif.ParseDate(config.EXIF_FIELDS_DATE_FORMAT, config.EXIF_FIELDS_DATE_CREATED, fileExif)
+				if fileDateErr != nil {
+					fileInfo, fileInfoErr := os.Stat(file)
+
+					if modTimeFlag && fileInfoErr == nil {
+						fileDate = fileInfo.ModTime()
+					} else {
+						newPath := filepath.Join(targetArg, "unknown", filepath.Base(file))
+
+						log.Info().Msgf("Moving %s to %s", file, newPath)
+
+						if dryRunFlag {
+							return
+						}
+
+						moveErr := util.MoveFile(file, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
+						if moveErr != nil {
+							filesErrCh <- moveErr
+							return
+						}
+					}
+				}
+
+				yearDir := fmt.Sprintf("%d", fileDate.Year())
+				monthDir := fmt.Sprintf("%d-%02d", fileDate.Year(), fileDate.Month())
+				fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), strings.ToLower(filepath.Ext(file)))
+				newPath := filepath.Join(targetArg, yearDir, monthDir, fileName)
+
+				log.Info().Msgf("Moving %s to %s", file, newPath)
+
+				if dryRunFlag {
+					return
+				}
+
+				moveErr := util.MoveFile(file, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
+				if moveErr != nil {
+					filesErrCh <- moveErr
+					return
+				}
+			}()
+		}
+
+		wg.Wait()
+		close(filesErrCh)
+
+		isErr := false
+		for fileErr := range filesErrCh {
+			if fileErr != nil {
+				log.Error().Msgf("Error: %v", fileErr)
+				isErr = true
+			}
+		}
+
+		if isErr {
+			log.Info().Msg("Completed with errors")
+			return errors.New("completed with errors")
 		}
 
 		log.Info().Msg("Completed successfully")

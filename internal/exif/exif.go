@@ -26,13 +26,20 @@ func Instance() *exiftool.Exiftool {
 	return exif
 }
 
-func Decode(path string) (exiftool.FileMetadata, error) {
-	fileExif := exif.ExtractMetadata(path)[0]
-	if fileExif.Err != nil {
-		return exiftool.FileMetadata{}, fileExif.Err
+func Extract(paths ...string) ([]exiftool.FileMetadata, error) {
+	exifs := exif.ExtractMetadata(paths...)
+	isExifsErr := false
+	for _, exif := range exifs {
+		if exif.Err != nil {
+			isExifsErr = true
+		}
 	}
 
-	return fileExif, nil
+	if isExifsErr {
+		return exifs, errors.New("failed to extract exif")
+	}
+
+	return exifs, nil
 }
 
 func ParseDate(dateFormats []string, exifFields []string, fileExif exiftool.FileMetadata) (time.Time, error) {
