@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/barasher/go-exiftool"
+	"github.com/patrickap/img-sort/m/v2/internal/config"
 	"github.com/patrickap/img-sort/m/v2/internal/log"
 	"github.com/patrickap/img-sort/m/v2/internal/util"
 )
@@ -26,27 +27,15 @@ func Instance() *exiftool.Exiftool {
 	return exif
 }
 
-func Extract(paths ...string) ([]exiftool.FileMetadata, error) {
-	exifs := exif.ExtractMetadata(paths...)
-	isExifsErr := false
-	for _, exif := range exifs {
-		if exif.Err != nil {
-			isExifsErr = true
-		}
-	}
-
-	if isExifsErr {
-		return exifs, errors.New("failed to extract exif")
-	}
-
-	return exifs, nil
+func Extract(paths ...string) []exiftool.FileMetadata {
+	return exif.ExtractMetadata(paths...)
 }
 
-func ParseDate(dateFormats []string, exifFields []string, fileExif exiftool.FileMetadata) (time.Time, error) {
+func ParseDate(exifFields []string, fileExif exiftool.FileMetadata) (time.Time, error) {
 	for _, exifField := range exifFields {
-		fileDate, err := util.ParseDate(dateFormats, fileExif.Fields[exifField])
+		date, err := util.ParseDate(config.EXIF_FIELDS_DATE_FORMAT, fileExif.Fields[exifField])
 		if err == nil {
-			return fileDate, nil
+			return date, nil
 		}
 	}
 

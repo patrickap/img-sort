@@ -43,6 +43,11 @@ var rootCmd = &cobra.Command{
 				return nil
 			}
 
+			if !util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, path) {
+				log.Warn().Msgf("Extension %s not supported", filepath.Ext(path))
+				return nil
+			}
+
 			files = append(files, path)
 			return nil
 		})
@@ -53,11 +58,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		log.Info().Msg("Extracting exif...")
-		exifs, exifsErr := exif.Extract(files...)
-		if exifsErr != nil {
-			log.Error().Msgf("Failed to extract exif: %v", exifsErr)
-			return exifsErr
-		}
+		exifs := exif.Extract(files...)
 
 		wg := sync.WaitGroup{}
 		filesErrCh := make(chan error, len(files))
@@ -65,18 +66,14 @@ var rootCmd = &cobra.Command{
 		for fileIndex, file := range files {
 			file := file
 			fileExif := exifs[fileIndex]
+			fileExifErr := fileExif.Err
 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 
-				if !util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, file) {
-					log.Warn().Msgf("Extension %s not supported", filepath.Ext(file))
-					return
-				}
-
-				fileDate, fileDateErr := exif.ParseDate(config.EXIF_FIELDS_DATE_FORMAT, config.EXIF_FIELDS_DATE_CREATED, fileExif)
-				if fileDateErr != nil {
+				fileDate, fileDateErr := exif.ParseDate(config.EXIF_FIELDS_DATE_CREATED, fileExif)
+				if fileExifErr != nil || fileDateErr != nil {
 					fileInfo, fileInfoErr := os.Stat(file)
 
 					if modTimeFlag && fileInfoErr == nil {
@@ -90,7 +87,7 @@ var rootCmd = &cobra.Command{
 							return
 						}
 
-						moveErr := util.MoveFile(file, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
+						moveErr := util.MoveFile(file, newPath)
 						if moveErr != nil {
 							filesErrCh <- moveErr
 							return
@@ -109,7 +106,7 @@ var rootCmd = &cobra.Command{
 					return
 				}
 
-				moveErr := util.MoveFile(file, newPath, config.DEFAULT_DUPLICATE_FILE_STRATEGY)
+				moveErr := util.MoveFile(file, newPath)
 				if moveErr != nil {
 					filesErrCh <- moveErr
 					return

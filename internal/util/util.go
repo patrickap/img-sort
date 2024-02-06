@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -42,14 +43,24 @@ func ParseDate(dateFormats []string, dateString interface{}) (time.Time, error) 
 	return time.Time{}, errors.New("failed to parse date")
 }
 
-func MoveFile(path string, newPath string, duplicateFileStrategy func(path string) string) error {
+func MoveFile(path string, newPath string) error {
 	err := os.MkdirAll(filepath.Dir(newPath), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
 	if IsFileExisting(newPath) {
-		newPath = duplicateFileStrategy(newPath)
+		fileExt := filepath.Ext(newPath)
+		fileBase := filepath.Base(newPath)
+		fileName := strings.TrimSuffix(fileBase, fileExt)
+
+		for i := 1; ; i++ {
+			newPathIdx := filepath.Join(filepath.Dir(newPath), fmt.Sprintf("%s-%d%s", fileName, i, fileExt))
+			if !IsFileExisting(newPathIdx) {
+				newPath = newPathIdx
+				break
+			}
+		}
 	}
 
 	return os.Rename(path, newPath)
