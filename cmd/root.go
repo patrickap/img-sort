@@ -50,15 +50,27 @@ var rootCmd = &cobra.Command{
 				if modTimeFlag {
 					fileInfo, fileInfoErr := os.Stat(file)
 					if fileInfoErr != nil {
-						return moveFileToUnknown(file, targetArg, dryRunFlag)
+						moveFileErr := moveFileToUnknown(file, targetArg, dryRunFlag)
+						if moveFileErr != nil {
+							return moveFileErr
+						}
 					} else {
-						return moveFileToTarget(file, fileInfo.ModTime(), targetArg, dryRunFlag)
+						moveFileErr := moveFileToTarget(file, fileInfo.ModTime(), targetArg, dryRunFlag)
+						if moveFileErr != nil {
+							return moveFileErr
+						}
 					}
 				} else {
-					return moveFileToUnknown(file, targetArg, dryRunFlag)
+					moveFileErr := moveFileToUnknown(file, targetArg, dryRunFlag)
+					if moveFileErr != nil {
+						return moveFileErr
+					}
 				}
 			} else {
-				return moveFileToTarget(file, fileDate, targetArg, dryRunFlag)
+				moveFileErr := moveFileToTarget(file, fileDate, targetArg, dryRunFlag)
+				if moveFileErr != nil {
+					return moveFileErr
+				}
 			}
 		}
 

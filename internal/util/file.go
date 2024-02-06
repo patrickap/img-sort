@@ -18,7 +18,7 @@ func ReadFiles(path string, includeExtensions []string) ([]string, error) {
 			return nil
 		}
 
-		if IsFileExtension(includeExtensions, path) {
+		if IsFileExtension(includeExtensions, currentPath) {
 			files = append(files, currentPath)
 		}
 
