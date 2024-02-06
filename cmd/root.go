@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/patrickap/img-sort/m/v2/internal/config"
@@ -34,7 +32,7 @@ var rootCmd = &cobra.Command{
 		modTimeFlag := modTimeFlag
 
 		log.Info().Msg("Reading files...")
-		files, filesErr := util.ReadFiles(sourceArg)
+		files, filesErr := util.ReadFiles(sourceArg, config.FILE_EXTENSIONS_SUPPORTED)
 		if filesErr != nil {
 			log.Error().Msgf("Failed to read files: %v", filesErr)
 			return filesErr
@@ -43,53 +41,25 @@ var rootCmd = &cobra.Command{
 		log.Info().Msg("Extracting exif...")
 		exifs := exif.Extract(files...)
 
-		wg := sync.WaitGroup{}
-		errCh := make(chan error, len(files))
-
-		for index, file := range files {
+		for fileIndex, file := range files {
 			file := file
-			fileExif := exifs[index]
+			fileExif := exifs[fileIndex]
 
-			if !util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, file) {
-				log.Warn().Msgf("Extension %s not supported", filepath.Ext(file))
-				continue
-			}
-
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
-				fileDate, fileDateError := exif.ParseDate(config.EXIF_FIELDS_DATE_CREATED, fileExif)
-				if fileDateError != nil {
-					if modTimeFlag {
-						fileInfo, fileInfoErr := os.Stat(file)
-						if fileInfoErr != nil {
-							errCh <- moveFileToUnknown(file, targetArg, dryRunFlag)
-						} else {
-							errCh <- moveFileToTarget(file, fileInfo.ModTime(), targetArg, dryRunFlag)
-						}
+			fileDate, fileDateError := exif.ParseDate(config.EXIF_FIELDS_DATE_CREATED, fileExif)
+			if fileExif.Err != nil || fileDateError != nil {
+				if modTimeFlag {
+					fileInfo, fileInfoErr := os.Stat(file)
+					if fileInfoErr != nil {
+						return moveFileToUnknown(file, targetArg, dryRunFlag)
 					} else {
-						errCh <- moveFileToUnknown(file, targetArg, dryRunFlag)
+						return moveFileToTarget(file, fileInfo.ModTime(), targetArg, dryRunFlag)
 					}
 				} else {
-					errCh <- moveFileToTarget(file, fileDate, targetArg, dryRunFlag)
+					return moveFileToUnknown(file, targetArg, dryRunFlag)
 				}
-			}()
-		}
-
-		wg.Wait()
-		close(errCh)
-
-		isErr := false
-		for err := range errCh {
-			if err != nil {
-				log.Error().Msgf("%v", err)
-				isErr = true
+			} else {
+				return moveFileToTarget(file, fileDate, targetArg, dryRunFlag)
 			}
-		}
-
-		if isErr {
-			return errors.New("failed to process files")
 		}
 
 		return nil

@@ -33,7 +33,7 @@ func Extract(paths ...string) []exiftool.FileMetadata {
 
 func ParseDate(exifFields []string, fileExif exiftool.FileMetadata) (time.Time, error) {
 	for _, exifField := range exifFields {
-		date, err := util.ParseDate(config.EXIF_FIELDS_DATE_FORMAT, fileExif.Fields[exifField])
+		date, err := util.TryParseDate(config.EXIF_FIELDS_DATE_FORMAT, fileExif.Fields[exifField])
 		if err == nil {
 			return date, nil
 		}
