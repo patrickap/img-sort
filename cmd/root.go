@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/patrickap/img-sort/m/v2/internal/config"
 	"github.com/patrickap/img-sort/m/v2/internal/exif"
@@ -32,28 +33,10 @@ var rootCmd = &cobra.Command{
 		dryRunFlag := dryRunFlag
 		modTimeFlag := modTimeFlag
 
-		log.Info().Msg("Processing files..")
-		files := []string{}
-		filesErr := filepath.WalkDir(sourceArg, func(path string, entry os.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if entry.IsDir() {
-				return nil
-			}
-
-			if !util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, path) {
-				log.Warn().Msgf("Extension %s not supported", filepath.Ext(path))
-				return nil
-			}
-
-			files = append(files, path)
-			return nil
-		})
-
+		log.Info().Msg("Reading files...")
+		files, filesErr := util.ReadFiles(sourceArg)
 		if filesErr != nil {
-			log.Error().Msgf("Failed to process files: %v", filesErr)
+			log.Error().Msgf("Failed to read files: %v", filesErr)
 			return filesErr
 		}
 
@@ -61,76 +44,54 @@ var rootCmd = &cobra.Command{
 		exifs := exif.Extract(files...)
 
 		wg := sync.WaitGroup{}
-		filesErrCh := make(chan error, len(files))
+		errCh := make(chan error, len(files))
 
-		for fileIndex, file := range files {
+		for index, file := range files {
 			file := file
-			fileExif := exifs[fileIndex]
-			fileExifErr := fileExif.Err
+			fileExif := exifs[index]
+
+			if util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, file) {
+				log.Warn().Msgf("Extension %s not supported", filepath.Ext(file))
+				continue
+			}
 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 
-				fileDate, fileDateErr := exif.ParseDate(config.EXIF_FIELDS_DATE_CREATED, fileExif)
-				if fileExifErr != nil || fileDateErr != nil {
-					fileInfo, fileInfoErr := os.Stat(file)
-
-					if modTimeFlag && fileInfoErr == nil {
-						fileDate = fileInfo.ModTime()
+				fileDate, fileDateError := exif.ParseDate(config.EXIF_FIELDS_DATE_CREATED, fileExif)
+				if fileDateError != nil {
+					if modTimeFlag {
+						fileInfo, fileInfoErr := os.Stat(file)
+						if fileInfoErr != nil {
+							errCh <- moveFileToUnknown(file, targetArg, dryRunFlag)
+						} else {
+							errCh <- moveFileToTarget(file, fileInfo.ModTime(), targetArg, dryRunFlag)
+						}
 					} else {
-						newPath := filepath.Join(targetArg, "unknown", filepath.Base(file))
-
-						log.Info().Msgf("Moving %s to %s", file, newPath)
-
-						if dryRunFlag {
-							return
-						}
-
-						moveErr := util.MoveFile(file, newPath)
-						if moveErr != nil {
-							filesErrCh <- moveErr
-							return
-						}
+						errCh <- moveFileToUnknown(file, targetArg, dryRunFlag)
 					}
-				}
-
-				yearDir := fmt.Sprintf("%d", fileDate.Year())
-				monthDir := fmt.Sprintf("%d-%02d", fileDate.Year(), fileDate.Month())
-				fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), strings.ToLower(filepath.Ext(file)))
-				newPath := filepath.Join(targetArg, yearDir, monthDir, fileName)
-
-				log.Info().Msgf("Moving %s to %s", file, newPath)
-
-				if dryRunFlag {
-					return
-				}
-
-				moveErr := util.MoveFile(file, newPath)
-				if moveErr != nil {
-					filesErrCh <- moveErr
-					return
+				} else {
+					errCh <- moveFileToTarget(file, fileDate, targetArg, dryRunFlag)
 				}
 			}()
 		}
 
 		wg.Wait()
-		close(filesErrCh)
+		close(errCh)
 
 		isErr := false
-		for fileErr := range filesErrCh {
-			if fileErr != nil {
-				log.Error().Msgf("Error: %v", fileErr)
+		for err := range errCh {
+			if err != nil {
+				log.Error().Msgf("%v", err)
 				isErr = true
 			}
 		}
 
 		if isErr {
-			log.Info().Msg("Completed with errors")
-			return errors.New("completed with errors")
+			return errors.New("failed to process files")
 		}
 
-		log.Info().Msg("Completed successfully")
 		return nil
 	},
 }
@@ -142,4 +103,29 @@ func init() {
 
 func Execute() error {
 	return rootCmd.Execute()
+}
+
+func moveFileToUnknown(file string, targetArg string, dryRunFlag bool) error {
+	newPath := filepath.Join(targetArg, "unknown", filepath.Base(file))
+
+	log.Info().Msgf("Moving %s to %s", file, newPath)
+	if !dryRunFlag {
+		return util.MoveFile(file, newPath)
+	}
+
+	return nil
+}
+
+func moveFileToTarget(file string, fileDate time.Time, targetArg string, dryRunFlag bool) error {
+	yearDir := fmt.Sprintf("%d", fileDate.Year())
+	monthDir := fmt.Sprintf("%d-%02d", fileDate.Year(), fileDate.Month())
+	fileName := fmt.Sprintf("%d-%02d-%02d_%02d.%02d.%02d%s", fileDate.Year(), fileDate.Month(), fileDate.Day(), fileDate.Hour(), fileDate.Minute(), fileDate.Second(), strings.ToLower(filepath.Ext(file)))
+	newPath := filepath.Join(targetArg, yearDir, monthDir, fileName)
+
+	log.Info().Msgf("Moving %s to %s", file, newPath)
+	if !dryRunFlag {
+		return util.MoveFile(file, newPath)
+	}
+
+	return nil
 }

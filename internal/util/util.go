@@ -10,6 +10,24 @@ import (
 	"time"
 )
 
+func ReadFiles(path string) ([]string, error) {
+	files := []string{}
+	err := filepath.WalkDir(path, func(currentPath string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if entry.IsDir() {
+			return nil
+		}
+
+		files = append(files, currentPath)
+		return nil
+	})
+
+	return files, err
+}
+
 func IsFileExtension(extensions []string, path string) bool {
 	for _, extension := range extensions {
 		if strings.ToLower(filepath.Ext(path)) == extension {
