@@ -50,7 +50,7 @@ var rootCmd = &cobra.Command{
 			file := file
 			fileExif := exifs[index]
 
-			if util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, file) {
+			if !util.IsFileExtension(config.FILE_EXTENSIONS_SUPPORTED, file) {
 				log.Warn().Msgf("Extension %s not supported", filepath.Ext(file))
 				continue
 			}
