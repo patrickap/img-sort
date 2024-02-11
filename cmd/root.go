@@ -19,7 +19,7 @@ var modTimeFlag bool
 
 var rootCmd = &cobra.Command{
 	Use:     "img-sort <source> <target>",
-	Version: "v0.0.8",
+	Version: "v0.0.9",
 	Short:   "Process all images and videos inside a directory and move them to a destination",
 	Long:    "Process all images and videos inside a directory and move them to a destination",
 	Args:    cobra.ExactArgs(2),
@@ -39,38 +39,26 @@ var rootCmd = &cobra.Command{
 		}
 
 		log.Info().Msg("Extracting exif...")
-		exifs := exif.Extract(files...)
+		exifs := exif.ExtractData(files...)
 
 		for fileIndex, file := range files {
 			file := file
 			fileExif := exifs[fileIndex]
 
-			fileDate, fileDateError := exif.ParseDate(config.EXIF_FIELDS_DATE_CREATED, fileExif)
+			fileDate, fileDateError := exif.ParseDate(fileExif, config.EXIF_FIELDS_DATE_CREATED)
 			if fileExif.Err != nil || fileDateError != nil {
 				if modTimeFlag {
 					fileInfo, fileInfoErr := os.Stat(file)
 					if fileInfoErr != nil {
-						moveFileErr := moveFileToUnknown(file, targetArg, dryRunFlag)
-						if moveFileErr != nil {
-							return moveFileErr
-						}
+						return moveFileToUnknown(file, targetArg, dryRunFlag)
 					} else {
-						moveFileErr := moveFileToTarget(file, fileInfo.ModTime(), targetArg, dryRunFlag)
-						if moveFileErr != nil {
-							return moveFileErr
-						}
+						return moveFileToTarget(file, fileInfo.ModTime(), targetArg, dryRunFlag)
 					}
 				} else {
-					moveFileErr := moveFileToUnknown(file, targetArg, dryRunFlag)
-					if moveFileErr != nil {
-						return moveFileErr
-					}
+					return moveFileToUnknown(file, targetArg, dryRunFlag)
 				}
 			} else {
-				moveFileErr := moveFileToTarget(file, fileDate, targetArg, dryRunFlag)
-				if moveFileErr != nil {
-					return moveFileErr
-				}
+				return moveFileToTarget(file, fileDate, targetArg, dryRunFlag)
 			}
 		}
 
@@ -79,8 +67,8 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().BoolVarP(&dryRunFlag, "dry-run", "D", false, "perform a dry run without modifying data")
-	rootCmd.Flags().BoolVarP(&modTimeFlag, "mod-time", "M", false, "use file modification time as fallback")
+	rootCmd.Flags().BoolVarP(&dryRunFlag, "dry-run", "d", false, "Perform a dry run without modifying data")
+	rootCmd.Flags().BoolVarP(&modTimeFlag, "mod-time", "m", false, "Use file modification time as fallback")
 }
 
 func Execute() error {

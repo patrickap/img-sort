@@ -80,8 +80,8 @@ img-sort /path/to/source /path/to/target
 
 ## Available Flags
 
-`--dry-run` / `-D`: Perform a dry run to test a command without modifying any data.
-`--mod-time` / `-M`: If there is no date information available the file modification time can be used as a fallback.
+`--dry-run` / `-d`: Perform a dry run to test a command without modifying any data.
+`--mod-time` / `-m`: If there is no date information available the file modification time can be used as a fallback.
 
 ## Building from sources
 

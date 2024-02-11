@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func ReadFiles(path string, includeExtensions []string) ([]string, error) {
+func ReadFiles(path string, include []string) ([]string, error) {
 	files := []string{}
 	err := filepath.WalkDir(path, func(currentPath string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -18,7 +18,7 @@ func ReadFiles(path string, includeExtensions []string) ([]string, error) {
 			return nil
 		}
 
-		if IsFileExtension(includeExtensions, currentPath) {
+		if len(include) == 0 || IsFileExtension(currentPath, include) {
 			files = append(files, currentPath)
 		}
 
@@ -28,7 +28,7 @@ func ReadFiles(path string, includeExtensions []string) ([]string, error) {
 	return files, err
 }
 
-func IsFileExtension(extensions []string, path string) bool {
+func IsFileExtension(path string, extensions []string) bool {
 	for _, extension := range extensions {
 		if strings.ToLower(filepath.Ext(path)) == extension {
 			return true
@@ -47,25 +47,25 @@ func IsFileExisting(path string) bool {
 	return !fileInfo.IsDir()
 }
 
-func MoveFile(path string, newPath string) error {
-	err := os.MkdirAll(filepath.Dir(newPath), os.ModePerm)
+func MoveFile(from string, to string) error {
+	err := os.MkdirAll(filepath.Dir(to), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	if IsFileExisting(newPath) {
-		fileExt := filepath.Ext(newPath)
-		fileBase := filepath.Base(newPath)
+	if IsFileExisting(to) {
+		fileExt := filepath.Ext(to)
+		fileBase := filepath.Base(to)
 		fileName := strings.TrimSuffix(fileBase, fileExt)
 
 		for i := 1; ; i++ {
-			newPathIdx := filepath.Join(filepath.Dir(newPath), fmt.Sprintf("%s-%d%s", fileName, i, fileExt))
-			if !IsFileExisting(newPathIdx) {
-				newPath = newPathIdx
+			newPath := filepath.Join(filepath.Dir(to), fmt.Sprintf("%s-%d%s", fileName, i, fileExt))
+			if !IsFileExisting(newPath) {
+				to = newPath
 				break
 			}
 		}
 	}
 
-	return os.Rename(path, newPath)
+	return os.Rename(from, to)
 }

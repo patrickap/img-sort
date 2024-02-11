@@ -27,13 +27,13 @@ func Instance() *exiftool.Exiftool {
 	return exif
 }
 
-func Extract(paths ...string) []exiftool.FileMetadata {
+func ExtractData(paths ...string) []exiftool.FileMetadata {
 	return exif.ExtractMetadata(paths...)
 }
 
-func ParseDate(exifFields []string, fileExif exiftool.FileMetadata) (time.Time, error) {
+func ParseDate(fileExif exiftool.FileMetadata, exifFields []string) (time.Time, error) {
 	for _, exifField := range exifFields {
-		date, err := util.TryParseDate(config.EXIF_FIELDS_DATE_FORMAT, fileExif.Fields[exifField])
+		date, err := util.TryParseDate(fileExif.Fields[exifField], config.EXIF_FIELDS_DATE_FORMAT)
 		if err == nil {
 			return date, nil
 		}

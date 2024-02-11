@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TryParseDate(dateFormats []string, dateString interface{}) (time.Time, error) {
+func TryParseDate(dateString interface{}, dateFormats []string) (time.Time, error) {
 	isString := dateString != nil && reflect.TypeOf(dateString).Kind() == reflect.String
 	if isString {
 		for _, format := range dateFormats {
