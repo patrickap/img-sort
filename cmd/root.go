@@ -32,33 +32,45 @@ var rootCmd = &cobra.Command{
 		modTimeFlag := modTimeFlag
 
 		log.Info().Msg("Reading files...")
-		files, filesErr := util.ReadFiles(sourceArg, config.FILE_EXTENSIONS_SUPPORTED)
-		if filesErr != nil {
-			log.Error().Msgf("Failed to read files: %v", filesErr)
-			return filesErr
+		files, err := util.ReadFiles(sourceArg, config.FILE_EXTENSIONS_SUPPORTED)
+		if err != nil {
+			log.Error().Msgf("Failed to read files: %v", err)
+			return err
 		}
 
 		log.Info().Msg("Extracting exif...")
 		exifs := exif.ExtractData(files...)
 
-		for fileIndex, file := range files {
+		for index, file := range files {
 			file := file
-			fileExif := exifs[fileIndex]
+			fileExif := exifs[index]
 
-			fileDate, fileDateError := exif.ParseDate(fileExif, config.EXIF_FIELDS_DATE_CREATED)
-			if fileExif.Err != nil || fileDateError != nil {
+			fileDate, err := exif.ParseDate(fileExif, config.EXIF_FIELDS_DATE_CREATED)
+			if fileExif.Err != nil || err != nil {
 				if modTimeFlag {
 					fileInfo, fileInfoErr := os.Stat(file)
 					if fileInfoErr != nil {
-						return moveFileToUnknown(file, targetArg, dryRunFlag)
+						err := moveFileToUnknown(file, targetArg, dryRunFlag)
+						if err != nil {
+							return err
+						}
 					} else {
-						return moveFileToTarget(file, fileInfo.ModTime(), targetArg, dryRunFlag)
+						err := moveFileToTarget(file, fileInfo.ModTime(), targetArg, dryRunFlag)
+						if err != nil {
+							return err
+						}
 					}
 				} else {
-					return moveFileToUnknown(file, targetArg, dryRunFlag)
+					err := moveFileToUnknown(file, targetArg, dryRunFlag)
+					if err != nil {
+						return err
+					}
 				}
 			} else {
-				return moveFileToTarget(file, fileDate, targetArg, dryRunFlag)
+				err := moveFileToTarget(file, fileDate, targetArg, dryRunFlag)
+				if err != nil {
+					return err
+				}
 			}
 		}
 

@@ -11,15 +11,15 @@ import (
 )
 
 var (
-	exif    *exiftool.Exiftool
-	exifErr error
+	exif *exiftool.Exiftool
+	err  error
 )
 
 func init() {
-	exif, exifErr = exiftool.NewExiftool()
-	if exifErr != nil {
+	exif, err = exiftool.NewExiftool()
+	if err != nil {
 		log.Error().Msg("Failed to initialize exiftool")
-		panic(exifErr)
+		panic(err)
 	}
 }
 
@@ -32,8 +32,8 @@ func ExtractData(paths ...string) []exiftool.FileMetadata {
 }
 
 func ParseDate(fileExif exiftool.FileMetadata, exifFields []string) (time.Time, error) {
-	for _, exifField := range exifFields {
-		date, err := util.TryParseDate(fileExif.Fields[exifField], config.EXIF_FIELDS_DATE_FORMAT)
+	for _, field := range exifFields {
+		date, err := util.TryParseDate(fileExif.Fields[field], config.EXIF_FIELDS_DATE_FORMAT)
 		if err == nil {
 			return date, nil
 		}
