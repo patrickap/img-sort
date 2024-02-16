@@ -19,7 +19,7 @@ var modTimeFlag bool
 
 var rootCmd = &cobra.Command{
 	Use:     "img-sort <source> <target>",
-	Version: "v0.0.9",
+	Version: "v0.0.10",
 	Short:   "process images and videos inside <source> and move them to <target>",
 	Long:    "process images and videos inside <source> and move them to <target>",
 	Args:    cobra.ExactArgs(2),
@@ -79,8 +79,8 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().BoolVarP(&dryRunFlag, "dry-run", "d", false, "Perform a dry run without modifying data")
-	rootCmd.Flags().BoolVarP(&modTimeFlag, "mod-time", "m", false, "Use file modification time as fallback")
+	rootCmd.Flags().BoolVarP(&dryRunFlag, "dry", "d", false, "perform a dry run without changes")
+	rootCmd.Flags().BoolVarP(&modTimeFlag, "modtime", "m", false, "use file modification time as fallback")
 }
 
 func Execute() error {
