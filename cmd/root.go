@@ -20,8 +20,8 @@ var modTimeFlag bool
 var rootCmd = &cobra.Command{
 	Use:     "img-sort <source> <target>",
 	Version: "v0.0.9",
-	Short:   "Process all images and videos inside a directory and move them to a destination",
-	Long:    "Process all images and videos inside a directory and move them to a destination",
+	Short:   "process images and videos inside <source> and move them to <target>",
+	Long:    "process images and videos inside <source> and move them to <target>",
 	Args:    cobra.ExactArgs(2),
 	RunE: func(c *cobra.Command, args []string) error {
 		defer exif.Instance().Close()
