@@ -68,7 +68,7 @@ sudo apt-get install perl=5.30
 sudo apt-get install exiftool=12.55
 ```
 
-After all dependencies are installed [download](./build/img-sort) the executable of `img-sort` and add it to the `$PATH` variable or move it to `/usr/bin/img-sort`.
+After all dependencies are installed [download](./build/img-sort) the executable of `img-sort` and add it to the `$PATH` variable or manually move it to `/usr/bin/img-sort`.
 
 ## Usage
 
