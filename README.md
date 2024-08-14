@@ -1,6 +1,6 @@
 # img-sort
 
-Introducing `img-sort`, a little golang tool that helps you keep your photos and videos organized. This tool will sort all your media in year and month folders, making it easy for you to find the photos and videos you need.
+Introducing img-sort, a little golang tool that helps you keep your photos and videos organized. This tool will sort all your media in year and month folders, making it easy for you to find the photos and videos you need.
 
 ## Features
 
@@ -12,7 +12,7 @@ Introducing `img-sort`, a little golang tool that helps you keep your photos and
 
 ## Folder Structure
 
-The folder structure created by `img-sort` will look like the following example:
+The folder structure created by img-sort will look like the following example:
 
 ```yaml
 ├── 2021
@@ -68,7 +68,7 @@ sudo apt-get install perl=5.30
 sudo apt-get install exiftool=12.55
 ```
 
-After all dependencies are installed [download](./build/img-sort) the executable of `img-sort` and add it to the `$PATH` variable or manually move it to `/usr/bin/img-sort`.
+After all dependencies are installed [download](./build/img-sort) the executable of img-sort and add it to the `$PATH` variable or manually move it to `/usr/bin/img-sort`.
 
 ## Usage
 
@@ -82,3 +82,7 @@ img-sort /path/to/source /path/to/target
 
 `--dry` / `-d`: Perform a dry run to test a command without modifying any data.
 `--modtime` / `-m`: If there is no date information available the file modification time can be used as a fallback.
+
+## Contribution
+
+Img-sort is developed in Go. To build the binary, execute `just go-build`, which will generate the binary at `./build/img-sort`. To publish a new version, use `just release <patch|minor|major>`. This command will automatically increment the version according to semantic versioning.
