@@ -82,10 +82,3 @@ img-sort /path/to/source /path/to/target
 
 `--dry` / `-d`: Perform a dry run to test a command without modifying any data.
 `--modtime` / `-m`: If there is no date information available the file modification time can be used as a fallback.
-
-## Building from sources
-
-1. Clone this repository: `git clone https://github.com/patrickap/img-sort.git`
-2. Navigate into the project directory: `cd img-sort`
-3. Build the tool: `sh build.sh`
-4. Run the binary: `build/img-sort`
