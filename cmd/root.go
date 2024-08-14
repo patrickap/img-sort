@@ -14,12 +14,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var version string
 var dryRunFlag bool
 var modTimeFlag bool
 
 var rootCmd = &cobra.Command{
 	Use:     "img-sort <source> <target>",
-	Version: "v0.0.10",
+	Version: version,
 	Short:   "process images and videos inside <source> and move them to <target>",
 	Long:    "process images and videos inside <source> and move them to <target>",
 	Args:    cobra.ExactArgs(2),
