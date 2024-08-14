@@ -47,22 +47,6 @@ In order to use this application, the following dependencies must be installed o
 
 Please ensure that these dependencies are installed before attempting to run this application.
 
-### Windows
-
-```bash
-choco install perl --version 5.30
-choco install exiftool --version 12.55
-```
-
-### MacOS
-
-```bash
-brew install perl@5.30
-brew install exiftool@12.55
-```
-
-### Linux
-
 ```bash
 sudo apt-get install perl=5.30
 sudo apt-get install exiftool=12.55
