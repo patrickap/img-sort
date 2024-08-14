@@ -20,12 +20,12 @@ restore_version:
 [private]
 go-build:
   @go mod download
-  @go build -ldflags "-X 'github.com/patrickap/img-sort/m/v2/cmd.version=v$(just get_version)'" -o ./build/img-sort
+  @GOOS=linux GOARCH=amd64 go build -ldflags "-X 'github.com/patrickap/img-sort/m/v2/cmd.version=v$(just get_version)'" -o ./build/img-sort
 
 [private]
 git-publish:
   @git add . -- ':!{{PROJECT_VERSION}}.bak'
-  @git commit -m "chore(release): $(just get_version)"
+  @git commit -m "chore(release): v$(just get_version)"
   @git push
   @git tag -a "v$(just get_version)" -m "Release v$(just get_version)"
   @git push --tags origin
