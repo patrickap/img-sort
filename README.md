@@ -48,8 +48,13 @@ In order to use this application, the following dependencies must be installed o
 Please ensure that these dependencies are installed before attempting to run this application.
 
 ```bash
-sudo apt-get install perl=5.30
-sudo apt-get install exiftool=12.55
+# Linux
+sudo apt-get install perl
+sudo apt-get install exiftool
+
+# MacOS
+brew install perl
+brew install exiftool
 ```
 
 After all dependencies are installed [download](./build/img-sort) the executable of img-sort and add it to the `$PATH` variable or manually move it to `/usr/bin/img-sort`.

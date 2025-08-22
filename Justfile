@@ -20,7 +20,10 @@ restore_version:
 [private]
 go_build:
   @go mod download
-  @GOOS=linux GOARCH=amd64 go build -ldflags "-X 'github.com/patrickap/img-sort/m/v2/cmd.version=v$(just get_version)'" -o ./build/img-sort
+  @GOOS=darwin GOARCH=amd64 go build -ldflags "-X 'github.com/patrickap/img-sort/m/v2/cmd.version=v$(just get_version)'" -o ./build/darwin-amd64/img-sort
+  @GOOS=darwin GOARCH=arm64 go build -ldflags "-X 'github.com/patrickap/img-sort/m/v2/cmd.version=v$(just get_version)'" -o ./build/darwin-arm64/img-sort
+  @GOOS=linux GOARCH=amd64 go build -ldflags "-X 'github.com/patrickap/img-sort/m/v2/cmd.version=v$(just get_version)'" -o ./build/linux-amd64/img-sort
+  @GOOS=linux GOARCH=arm64 go build -ldflags "-X 'github.com/patrickap/img-sort/m/v2/cmd.version=v$(just get_version)'" -o ./build/linux-arm64/img-sort
 
 [private]
 git_publish:
